@@ -9,6 +9,11 @@
     entries matching ALL provided criteria (AND logic across fields). Displays
     matches for review, then removes after confirmation.
 
+    For HKLM Uninstall, each parameter matches its corresponding field.
+    For HKCR Installer\Products (which only stores ProductName), all parameters
+    are matched as wildcards against ProductName since version and publisher info
+    are typically embedded in the name (e.g. "*Visual C++*" AND "*14.50*").
+
     Use this when:
       - An app's MSI source is gone (ProgramData\Package Cache deleted)
       - Uninstall left behind registry entries blocking reinstall/upgrade
@@ -116,8 +121,10 @@ function Find-InstallerProductEntries {
     .SYNOPSIS
         Searches HKCR\Installer\Products for matching entries by ProductName.
     .DESCRIPTION
-        Installer\Products only has ProductName (no version or publisher), so only
-        the DisplayName filter applies here. Version/Publisher filters are skipped.
+        Installer\Products only stores ProductName (no separate version or publisher
+        fields). All filter parameters are applied as wildcard matches against the
+        ProductName string, since version and publisher info are typically embedded
+        in the name (e.g. "Microsoft Visual C++ 2022 X64 Additional Runtime - 14.50.35719").
     #>
     $installerPath = 'HKLM:\SOFTWARE\Classes\Installer\Products'
     if (-not (Test-Path $installerPath)) { return @() }
@@ -128,15 +135,17 @@ function Find-InstallerProductEntries {
         $productName = (Get-ItemProperty -Path $_.PSPath -Name ProductName -ErrorAction SilentlyContinue).ProductName
         if (-not $productName) { return }
 
-        if ($productName -like $DisplayName) {
-            $results += [PSCustomObject]@{
-                Source      = 'HKCR Installer\Products'
-                KeyName     = $_.PSChildName
-                DisplayName = $productName
-                Version     = '--'
-                Publisher   = '--'
-                RegPath     = $_.PSPath
-            }
+        if ($productName -notlike $DisplayName) { return }
+        if ($DisplayVersion -and $productName -notlike $DisplayVersion) { return }
+        if ($Publisher -and $productName -notlike $Publisher) { return }
+
+        $results += [PSCustomObject]@{
+            Source      = 'HKCR Installer\Products'
+            KeyName     = $_.PSChildName
+            DisplayName = $productName
+            Version     = '--'
+            Publisher   = '--'
+            RegPath     = $_.PSPath
         }
     }
 
