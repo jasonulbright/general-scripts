@@ -8,10 +8,19 @@ A collection of PowerShell utility scripts organized by category.
 |---|---|
 | [rename-extensions.ps1](Filesystem/rename-extensions.ps1) | Obfuscate or restore file extensions to bypass email attachment filters (`.ps1` -> `.notps1` and back) |
 
+## ElevatedLauncher
+
+| Script | Description |
+|---|---|
+| [ElevatedLauncher.ps1](ElevatedLauncher/ElevatedLauncher.ps1) | WinForms GUI for launching applications under alternate (elevated) credentials. Stores AES-encrypted credentials on disk and persists a user-defined app list in JSON. |
+
 ## MECM
 
 | Script | Description |
 |---|---|
+| [OSD-ComputerSetup.ps1](MECM/OSD-ComputerSetup.ps1) | WinPE GUI for MECM OSD that collects a computer role (OU) and hostname, validates the hostname (8 alphanumeric chars), checks MECM for duplicates via WMI, and sets task sequence variables. Launched via ServiceUI.exe. |
+| [OSD-ComputerSetup.bat](MECM/OSD-ComputerSetup.bat) | Wrapper batch file for OSD-ComputerSetup.ps1. Returns exit code 1630 on failure to halt the task sequence. |
+| [Export-MECMCredential.ps1](MECM/Export-MECMCredential.ps1) | Generates AES-encrypted credential files (mecm.key, mecm.user, mecm.pass) for use by OSD-ComputerSetup.ps1 during WinPE imaging. |
 | [Set-MECMManagementPoint.ps1](MECM/Set-MECMManagementPoint.ps1) | Force MECM clients to use a specific Management Point by cleaning cached MP references in registry, WMI, and CCM data stores. Supports batch deployment via PS-Remote. |
 | [remove-appdeployments.ps1](MECM/remove-appdeployments.ps1) | Remove all deployments for a specific MECM application with review and confirmation |
 
