@@ -102,7 +102,7 @@ $lv.Size = New-Object System.Drawing.Size(676, 300)
 $form.Controls.Add($lv)
 
 # --- Populate ListView ---
-function Refresh-ListView {
+function Update-ListView {
     $lv.Items.Clear()
     $apps = Get-AppList
     foreach ($app in $apps) {
@@ -113,7 +113,7 @@ function Refresh-ListView {
         [void]$lv.Items.Add($item)
     }
 }
-Refresh-ListView
+Update-ListView
 
 # --- Buttons ---
 $btnCred = New-Object System.Windows.Forms.Button
@@ -199,7 +199,7 @@ $btnAdd.Add_Click({
     $apps = @(Get-AppList)
     $apps += @{ Name = $appName; Path = $exePath }
     Save-AppList -Apps $apps
-    Refresh-ListView
+    Update-ListView
 })
 
 # --- Remove App ---
@@ -212,7 +212,7 @@ $btnRemove.Add_Click({
     $apps = @(Get-AppList)
     $apps = @($apps | Where-Object { $apps.IndexOf($_) -ne $idx })
     Save-AppList -Apps $apps
-    Refresh-ListView
+    Update-ListView
 })
 
 # --- Launch ---
