@@ -7,15 +7,18 @@
     to the extension:  .ps1 -> .notps1,  .exe -> .notexe,  .bat -> .notbat
 
     Use -Undo to reverse:  .notps1 -> .ps1,  .notexe -> .exe
+    Use -Archive to also create a .zip of the folder after renaming.
 
 .EXAMPLE
     .\rename-extensions.ps1 -Path C:\temp\packagers
+    .\rename-extensions.ps1 -Path C:\temp\packagers -Archive
     .\rename-extensions.ps1 -Path C:\temp\packagers -Undo
 #>
 param(
     [Parameter(Mandatory)]
     [string]$Path,
-    [switch]$Undo
+    [switch]$Undo,
+    [switch]$Archive
 )
 
 if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
@@ -50,3 +53,12 @@ foreach ($f in $files) {
 }
 
 Write-Host "`n$count file(s) renamed."
+
+if ($Archive -and -not $Undo) {
+    $resolvedPath = (Resolve-Path -LiteralPath $Path).Path.TrimEnd('\')
+    $folderName = Split-Path -Leaf $resolvedPath
+    $zipPath = Join-Path (Split-Path -Parent $resolvedPath) "$folderName.zip"
+    if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
+    Compress-Archive -Path "$resolvedPath\*" -DestinationPath $zipPath -Force
+    Write-Host "Archive created: $zipPath"
+}
