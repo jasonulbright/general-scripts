@@ -6,7 +6,7 @@ A collection of PowerShell utility scripts organized by category.
 
 | Script | Description |
 |---|---|
-| [rename-extensions.ps1](Filesystem/rename-extensions.ps1) | Obfuscate or restore file extensions to bypass email attachment filters (`.ps1` -> `.notps1` and back). `-Archive` switch zips the folder after renaming. |
+| [rename-extensions.ps1](Filesystem/rename-extensions.ps1) | Rename file extensions for safe transfer (`.ps1` -> `.notps1`), restore with `-Undo`, zip with `-Archive` |
 
 ## ElevatedLauncher
 
