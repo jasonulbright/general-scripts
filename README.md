@@ -6,7 +6,7 @@ A collection of PowerShell utility scripts organized by category.
 
 | Script | Description |
 |---|---|
-| [rename-extensions.ps1](Filesystem/rename-extensions.ps1) | Obfuscate or restore file extensions to bypass email attachment filters (`.ps1` -> `.notps1` and back) |
+| [rename-extensions.ps1](Filesystem/rename-extensions.ps1) | Obfuscate or restore file extensions to bypass email attachment filters (`.ps1` -> `.notps1` and back). `-Archive` switch zips the folder after renaming. |
 
 ## ElevatedLauncher
 
@@ -23,6 +23,7 @@ A collection of PowerShell utility scripts organized by category.
 | [Export-MECMCredential.ps1](MECM/Export-MECMCredential.ps1) | Generates AES-encrypted credential files (mecm.key, mecm.user, mecm.pass) for use by OSD-ComputerSetup.ps1 during WinPE imaging. |
 | [Set-MECMManagementPoint.ps1](MECM/Set-MECMManagementPoint.ps1) | Force MECM clients to use a specific Management Point by cleaning cached MP references in registry, WMI, and CCM data stores. Supports batch deployment via PS-Remote. |
 | [remove-appdeployments.ps1](MECM/remove-appdeployments.ps1) | Remove all deployments for a specific MECM application with review and confirmation |
+| [cachebaseline/](MECM/cachebaseline/) | MECM Configuration Baseline for automated CCM cache cleanup. Clears non-persistent cache content on a weekly schedule while preserving pinned content. Includes CI/CB creation script, standalone discovery/remediation scripts, and deployment docs. |
 
 ## Registry
 
