@@ -2,6 +2,16 @@
 
 All notable changes to General Scripts are documented in this file.
 
+## [1.0.2] - 2026-03-24
+
+### Added
+- **rename-extensions.ps1**: `-Archive` switch that creates a `.zip` of the target folder after renaming extensions. Streamlines the rename-zip-email workflow into a single command.
+- **MECM/cachebaseline/**: Automated CCM cache cleanup solution using an MECM Configuration Baseline.
+  - Discovery script reports non-persistent cache size in MB
+  - Remediation script clears non-persistent cache elements (preserves content flagged "Persist in client cache")
+  - `New-CCMCacheCleanupBaseline.ps1` creates the CI, Baseline, and optional deployment via ConfigurationManager cmdlets
+  - Configurable threshold (default 20 GB), weekly schedule
+
 ## [1.0.0] - 2026-03-10
 
 ### Added
