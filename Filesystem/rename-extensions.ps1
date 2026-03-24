@@ -1,12 +1,13 @@
 <#
 .SYNOPSIS
-    Obfuscates or restores file extensions to bypass email attachment filters.
+    Renames file extensions for safe transfer, then restores them at the destination.
 
 .DESCRIPTION
-    Renames all file extensions in a directory (recursively) by prepending "not"
-    to the extension:  .ps1 -> .notps1,  .exe -> .notexe,  .bat -> .notbat
+    Prepends "not" to every file extension in a directory (recursively) so that
+    script and executable files can be transferred without triggering
+    extension-based attachment policies:  .ps1 -> .notps1,  .exe -> .notexe
 
-    Use -Undo to reverse:  .notps1 -> .ps1,  .notexe -> .exe
+    Use -Undo to restore original extensions at the destination.
     Use -Archive to also create a .zip of the folder after renaming.
 
 .EXAMPLE
