@@ -33,6 +33,31 @@
             "Priority": 3
         },
         {
+            "Name": "Cisco Secure Connect Root CA",
+            "InstallerFile": "CiscoSecureConnect-RootCA.cer",
+            "SilentArgs": "Root",
+            "ValidationPath": null,
+            "RebootAfter": false,
+            "Priority": 5,
+            "_comment": "SilentArgs = certificate store name (Root, CA, My, TrustedPublisher)"
+        },
+        {
+            "Name": "ZPA Intermediate CA",
+            "InstallerFile": "ZscalerRootCA.cer",
+            "SilentArgs": "Root",
+            "ValidationPath": null,
+            "RebootAfter": false,
+            "Priority": 6
+        },
+        {
+            "Name": "SentinelOne Root CA",
+            "InstallerFile": "S1-RootCA.cer",
+            "SilentArgs": "Root",
+            "ValidationPath": null,
+            "RebootAfter": false,
+            "Priority": 7
+        },
+        {
             "Name": "Zscaler Connector",
             "InstallerFile": "ZscalerConnector.exe",
             "SilentArgs": "/S",
