@@ -71,14 +71,28 @@ Describe 'Reset-Config.json' {
         $config.Domain.DefaultOU | Should -Match '^OU=.*,DC=.*'
     }
 
-    It 'Has Apps section' {
-        $config.Apps | Should -Not -BeNullOrEmpty
+    It 'Has InstallSequence array' {
+        $config.InstallSequence | Should -Not -BeNullOrEmpty
+        $config.InstallSequence.Count | Should -BeGreaterThan 0
     }
 
-    It 'Each app has InstallerPath and SilentArgs' {
-        foreach ($prop in $config.Apps.PSObject.Properties) {
-            $prop.Value.InstallerPath | Should -Not -BeNullOrEmpty -Because "$($prop.Name) needs InstallerPath"
-            $prop.Value.SilentArgs | Should -Not -BeNullOrEmpty -Because "$($prop.Name) needs SilentArgs"
+    It 'Each install step has Name, InstallerFile, and SilentArgs' {
+        foreach ($app in $config.InstallSequence) {
+            $app.Name | Should -Not -BeNullOrEmpty -Because "install step needs Name"
+            $app.InstallerFile | Should -Not -BeNullOrEmpty -Because "$($app.Name) needs InstallerFile"
+            $app.SilentArgs | Should -Not -BeNullOrEmpty -Because "$($app.Name) needs SilentArgs"
+        }
+    }
+
+    It 'Each install step has a Priority' {
+        foreach ($app in $config.InstallSequence) {
+            $app.Priority | Should -Not -BeNullOrEmpty -Because "$($app.Name) needs Priority"
+        }
+    }
+
+    It 'Each install step has RebootAfter boolean' {
+        foreach ($app in $config.InstallSequence) {
+            $app.PSObject.Properties.Name | Should -Contain 'RebootAfter' -Because "$($app.Name) needs RebootAfter"
         }
     }
 
