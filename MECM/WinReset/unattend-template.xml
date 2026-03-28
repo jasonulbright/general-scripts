@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <unattend xmlns="urn:schemas-microsoft-com:unattend">
 
-  <!-- Specialize pass: set computer name, bypass network requirement -->
+  <!-- Specialize pass: set computer name, bypass network requirement, stage SetupComplete -->
   <settings pass="specialize">
     <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64"
                publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
@@ -19,11 +19,21 @@
           <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OOBE /v BypassNRO /t REG_DWORD /d 1 /f</Path>
           <Description>Bypass network requirement in OOBE (24H2)</Description>
         </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>2</Order>
+          <Path>cmd /c mkdir C:\Windows\Setup\Scripts</Path>
+          <Description>Create SetupComplete directory</Description>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>3</Order>
+          <Path>cmd /c echo powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Recovery\Customizations\post-setup.ps1" -ConfigPath "C:\Recovery\Customizations\Reset-Config.json" &gt; C:\Windows\Setup\Scripts\SetupComplete.cmd</Path>
+          <Description>Create SetupComplete.cmd to run post-setup as SYSTEM</Description>
+        </RunSynchronousCommand>
       </RunSynchronous>
     </component>
   </settings>
 
-  <!-- OOBE pass: skip all screens, create temp admin, auto-logon, run post-setup -->
+  <!-- OOBE pass: skip all screens, no user account needed -->
   <settings pass="oobeSystem">
     <component name="Microsoft-Windows-International-Core" processorArchitecture="amd64"
                publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
@@ -49,41 +59,6 @@
         <SkipUserOOBE>true</SkipUserOOBE>
         <SkipMachineOOBE>true</SkipMachineOOBE>
       </OOBE>
-
-      <!-- Temporary local admin (deleted by post-setup.ps1) -->
-      <UserAccounts>
-        <LocalAccounts>
-          <LocalAccount wcm:action="add">
-            <Name>{{TEMP_ADMIN_USER}}</Name>
-            <Password>
-              <Value>{{TEMP_ADMIN_PASS}}</Value>
-              <PlainText>true</PlainText>
-            </Password>
-            <Group>Administrators</Group>
-          </LocalAccount>
-        </LocalAccounts>
-      </UserAccounts>
-
-      <!-- Single auto-logon to run post-setup -->
-      <AutoLogon>
-        <Enabled>true</Enabled>
-        <Username>{{TEMP_ADMIN_USER}}</Username>
-        <Password>
-          <Value>{{TEMP_ADMIN_PASS}}</Value>
-          <PlainText>true</PlainText>
-        </Password>
-        <LogonCount>1</LogonCount>
-      </AutoLogon>
-
-      <!-- Run post-setup script at first logon -->
-      <FirstLogonCommands>
-        <SynchronousCommand wcm:action="add">
-          <Order>1</Order>
-          <CommandLine>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Recovery\Customizations\post-setup.ps1" -ConfigPath "C:\Recovery\Customizations\Reset-Config.json"</CommandLine>
-          <Description>Zero-touch post-reset automation</Description>
-          <RequiresUserInput>false</RequiresUserInput>
-        </SynchronousCommand>
-      </FirstLogonCommands>
 
     </component>
   </settings>
