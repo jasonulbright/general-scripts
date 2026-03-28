@@ -1,0 +1,25 @@
+{
+    "_comment": "Maps friendly role names (shown to imaging techs) to LDAP OU paths and optional app-install variables.",
+    "Roles": [
+        {
+            "Name": "Legal Desktop",
+            "OUPath": "LDAP://OU=Desktops,OU=Legal,OU=Workstations,DC=contoso,DC=com",
+            "AppProfile": "Legal"
+        },
+        {
+            "Name": "Operations Laptop",
+            "OUPath": "LDAP://OU=Laptops,OU=Operations,OU=Workstations,DC=contoso,DC=com",
+            "AppProfile": "Operations"
+        },
+        {
+            "Name": "Accounting Desktop",
+            "OUPath": "LDAP://OU=Desktops,OU=Accounting,OU=Workstations,DC=contoso,DC=com",
+            "AppProfile": "Accounting"
+        },
+        {
+            "Name": "Marketing Laptop",
+            "OUPath": "LDAP://OU=Laptops,OU=Marketing,OU=Workstations,DC=contoso,DC=com",
+            "AppProfile": "Marketing"
+        }
+    ]
+}
