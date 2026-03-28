@@ -135,24 +135,11 @@ if ($config.MECMClient) {
     }
 }
 
-# --- Disable auto-logon ---
-Write-Host ""
-Write-Host "Disabling auto-logon..."
-$winlogonPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
-Remove-ItemProperty -Path $winlogonPath -Name 'DefaultPassword' -ErrorAction SilentlyContinue
-Set-ItemProperty -Path $winlogonPath -Name 'AutoAdminLogon' -Value '0' -ErrorAction SilentlyContinue
-Write-Host "  Auto-logon disabled."
-
-# --- Schedule temp admin cleanup ---
-$tempUser = $config.TempAdmin.Username
-if ($tempUser) {
-    Write-Host "Scheduling temp admin cleanup ($tempUser)..."
-    $cleanupScript = "Remove-LocalUser -Name '$tempUser' -ErrorAction SilentlyContinue; Unregister-ScheduledTask -TaskName 'WinReset-Cleanup' -Confirm:`$false -ErrorAction SilentlyContinue"
-    $taskAction = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -Command `"$cleanupScript`""
-    $taskTrigger = New-ScheduledTaskTrigger -AtStartup
-    $taskPrincipal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -RunLevel Highest
-    Register-ScheduledTask -TaskName 'WinReset-Cleanup' -Action $taskAction -Trigger $taskTrigger -Principal $taskPrincipal -Force | Out-Null
-    Write-Host "  Cleanup task registered (runs at next boot)."
+# --- Clean up SetupComplete.cmd (one-shot, already ran) ---
+$setupCompleteCmd = Join-Path $env:SystemRoot 'Setup\Scripts\SetupComplete.cmd'
+if (Test-Path $setupCompleteCmd) {
+    Remove-Item $setupCompleteCmd -Force -ErrorAction SilentlyContinue
+    Write-Host "Removed SetupComplete.cmd (one-shot)."
 }
 
 # --- Set completion flag ---

@@ -240,14 +240,8 @@ if (-not (Test-Path $templatePath)) {
     exit 1
 }
 
-# Generate random temp admin password (16 chars)
-$chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!#$%&*'
-$tempPass = -join (1..16 | ForEach-Object { $chars[(Get-Random -Maximum $chars.Length)] })
-
 $unattend = Get-Content $templatePath -Raw
 $unattend = $unattend -replace '{{COMPUTERNAME}}', $computerName
-$unattend = $unattend -replace '{{TEMP_ADMIN_USER}}', $config.TempAdmin.Username
-$unattend = $unattend -replace '{{TEMP_ADMIN_PASS}}', $tempPass
 $locale   = if ($config.Locale)   { $config.Locale }   else { 'en-US' }
 $keyboard = if ($config.Keyboard) { $config.Keyboard } else { '0409:00000409' }
 $unattend = $unattend -replace '{{LOCALE}}', $locale
@@ -256,7 +250,7 @@ $unattend = $unattend -replace '{{KEYBOARD}}', $keyboard
 Set-Content -Path "$autoApplyPath\unattend.xml" -Value $unattend -Encoding UTF8 -Force
 Write-Step "  Generated: $autoApplyPath\unattend.xml" -Level OK
 Write-Step "  Computer name: $computerName"
-Write-Step "  Temp admin: $($config.TempAdmin.Username)"
+Write-Step "  Post-setup runs as SYSTEM via SetupComplete.cmd (no temp admin)"
 
 # ── Validate staging ─────────────────────────────────────────────────────────
 
