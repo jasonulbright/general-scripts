@@ -128,13 +128,48 @@ for ($i = 0; $i -lt $sequence.Count; $i++) {
     Write-Host "  File: $($installerFile.FullName)"
     Write-Host "  Args: $($app.SilentArgs)"
 
-    if ($installerFile.Extension -eq '.msi') {
-        $proc = Start-Process msiexec.exe -ArgumentList "/i `"$($installerFile.FullName)`" $($app.SilentArgs)" -Wait -PassThru -NoNewWindow
-    } else {
-        $proc = Start-Process -FilePath $installerFile.FullName -ArgumentList $app.SilentArgs -Wait -PassThru -NoNewWindow
+    $exitCode = 0
+
+    switch ($installerFile.Extension) {
+        '.msi' {
+            $proc = Start-Process msiexec.exe -ArgumentList "/i `"$($installerFile.FullName)`" $($app.SilentArgs)" -Wait -PassThru -NoNewWindow
+            $exitCode = $proc.ExitCode
+        }
+        '.cer' {
+            # Import certificate to LocalMachine store (default: Root)
+            $store = if ($app.SilentArgs) { $app.SilentArgs } else { 'Root' }
+            $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($installerFile.FullName)
+            $certStore = New-Object System.Security.Cryptography.X509Certificates.X509Store($store, 'LocalMachine')
+            $certStore.Open('ReadWrite')
+            $certStore.Add($cert)
+            $certStore.Close()
+            Write-Host "  Imported to LocalMachine\$store"
+        }
+        '.p12' {
+            # Import PFX (SilentArgs = store name, or "Root" default; no password for machine certs)
+            $store = if ($app.SilentArgs) { $app.SilentArgs } else { 'Root' }
+            Import-PfxCertificate -FilePath $installerFile.FullName -CertStoreLocation "Cert:\LocalMachine\$store" -ErrorAction Stop
+            Write-Host "  Imported PFX to LocalMachine\$store"
+        }
+        '.pfx' {
+            $store = if ($app.SilentArgs) { $app.SilentArgs } else { 'Root' }
+            Import-PfxCertificate -FilePath $installerFile.FullName -CertStoreLocation "Cert:\LocalMachine\$store" -ErrorAction Stop
+            Write-Host "  Imported PFX to LocalMachine\$store"
+        }
+        { $_ -in '.bat', '.cmd' } {
+            $proc = Start-Process cmd.exe -ArgumentList "/c `"$($installerFile.FullName)`" $($app.SilentArgs)" -Wait -PassThru -NoNewWindow
+            $exitCode = $proc.ExitCode
+        }
+        '.ps1' {
+            $proc = Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$($installerFile.FullName)`" $($app.SilentArgs)" -Wait -PassThru -NoNewWindow
+            $exitCode = $proc.ExitCode
+        }
+        default {
+            $proc = Start-Process -FilePath $installerFile.FullName -ArgumentList $app.SilentArgs -Wait -PassThru -NoNewWindow
+            $exitCode = $proc.ExitCode
+        }
     }
 
-    $exitCode = $proc.ExitCode
     Write-Host "  Exit code: $exitCode"
 
     if ($app.ValidationPath -and (Test-Path $app.ValidationPath)) {
