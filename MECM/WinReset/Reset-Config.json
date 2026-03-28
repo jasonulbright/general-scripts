@@ -1,0 +1,43 @@
+{
+    "_comment": "Configuration for zero-touch remote factory reset. Edit for your environment.",
+
+    "Domain": {
+        "FQDN": "contoso.com",
+        "NetBIOS": "CONTOSO",
+        "DefaultOU": "OU=Workstations,DC=contoso,DC=com"
+    },
+
+    "Apps": {
+        "Zscaler": {
+            "InstallerPath": "\\\\fileserver\\share$\\Installers\\ZscalerConnector.exe",
+            "SilentArgs": "/S",
+            "ValidationPath": "C:\\Program Files\\Zscaler\\ZSATunnel.exe"
+        },
+        "TeamViewerHost": {
+            "InstallerPath": "\\\\fileserver\\share$\\Installers\\TeamViewer_Host.msi",
+            "SilentArgs": "/qn /norestart",
+            "ValidationPath": "C:\\Program Files\\TeamViewer\\TeamViewer.exe"
+        }
+    },
+
+    "MECMClient": {
+        "InstallerPath": "\\\\cm01\\SMS_MCM\\Client\\ccmsetup.exe",
+        "SilentArgs": "/mp:cm01.contoso.com SMSSITECODE=MCM /NoCRLCheck"
+    },
+
+    "TempAdmin": {
+        "Username": "ResetAdmin"
+    },
+
+    "WiFi": {
+        "ExportProfiles": true
+    },
+
+    "Locale": "en-US",
+    "Keyboard": "0409:00000409",
+
+    "Recovery": {
+        "CustomizationsPath": "C:\\Recovery\\Customizations",
+        "AutoApplyPath": "C:\\Recovery\\AutoApply"
+    }
+}

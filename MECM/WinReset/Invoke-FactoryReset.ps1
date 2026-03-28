@@ -98,6 +98,23 @@ $targets = if ($ComputerName) { $ComputerName } else { @('localhost') }
 foreach ($target in $targets) {
     $displayName = if ($target -eq 'localhost') { $env:COMPUTERNAME } else { $target }
 
+    # Pre-flight: check for recovery payload (zero-touch automation)
+    if ($target -eq 'localhost' -or $target -eq $env:COMPUTERNAME) {
+        $hasPayload = (Test-Path 'C:\Recovery\Customizations\post-setup.ps1') -and
+                      (Test-Path 'C:\Recovery\AutoApply\unattend.xml')
+        if (-not $hasPayload) {
+            Write-Host ''
+            Write-Host '  NOTE: No recovery payload found in C:\Recovery\.' -ForegroundColor Yellow
+            Write-Host '  The device will reset to a blank OOBE with no automation.' -ForegroundColor Yellow
+            Write-Host '  Run Invoke-PrepareReset.ps1 first for zero-touch reset.' -ForegroundColor Yellow
+            Write-Host ''
+            if (-not $Force) {
+                $proceed = Read-Host '  Continue with bare reset? (YES/NO)'
+                if ($proceed -ne 'YES') { Write-Host '  Aborted.'; continue }
+            }
+        }
+    }
+
     if (-not $Force) {
         Write-Host ''
         Write-Host "  WARNING: This will factory reset $displayName" -ForegroundColor Red
