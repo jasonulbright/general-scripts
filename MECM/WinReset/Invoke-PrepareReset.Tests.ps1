@@ -82,10 +82,6 @@ Describe 'Reset-Config.json' {
         }
     }
 
-    It 'Has TempAdmin.Username' {
-        $config.TempAdmin.Username | Should -Not -BeNullOrEmpty
-    }
-
     It 'Has Recovery paths' {
         $config.Recovery.CustomizationsPath | Should -Not -BeNullOrEmpty
         $config.Recovery.AutoApplyPath | Should -Not -BeNullOrEmpty
@@ -114,14 +110,6 @@ Describe 'unattend-template.xml' {
         $templateContent | Should -Match '{{COMPUTERNAME}}'
     }
 
-    It 'Contains TEMP_ADMIN_USER placeholder' {
-        $templateContent | Should -Match '{{TEMP_ADMIN_USER}}'
-    }
-
-    It 'Contains TEMP_ADMIN_PASS placeholder' {
-        $templateContent | Should -Match '{{TEMP_ADMIN_PASS}}'
-    }
-
     It 'Contains LOCALE placeholder' {
         $templateContent | Should -Match '{{LOCALE}}'
     }
@@ -144,15 +132,18 @@ Describe 'unattend-template.xml' {
         $templateContent | Should -Match 'HideEULAPage.*true'
     }
 
-    It 'Sets AutoLogon with LogonCount 1' {
-        $templateContent | Should -Match 'LogonCount.*1'
+    It 'Creates SetupComplete.cmd in specialize pass' {
+        $templateContent | Should -Match 'SetupComplete\.cmd'
+    }
+
+    It 'Does not use temp admin or auto-logon' {
+        $templateContent | Should -Not -Match 'AutoLogon'
+        $templateContent | Should -Not -Match 'TEMP_ADMIN'
     }
 
     It 'Is valid XML after placeholder substitution' {
         $filled = $templateContent
         $filled = $filled -replace '{{COMPUTERNAME}}', 'TESTPC01'
-        $filled = $filled -replace '{{TEMP_ADMIN_USER}}', 'ResetAdmin'
-        $filled = $filled -replace '{{TEMP_ADMIN_PASS}}', 'P@ssw0rd123!'
         $filled = $filled -replace '{{LOCALE}}', 'en-US'
         $filled = $filled -replace '{{KEYBOARD}}', '0409:00000409'
         { [xml]$filled } | Should -Not -Throw
@@ -161,8 +152,6 @@ Describe 'unattend-template.xml' {
     It 'Has no remaining placeholders after substitution' {
         $filled = $templateContent
         $filled = $filled -replace '{{COMPUTERNAME}}', 'TESTPC01'
-        $filled = $filled -replace '{{TEMP_ADMIN_USER}}', 'ResetAdmin'
-        $filled = $filled -replace '{{TEMP_ADMIN_PASS}}', 'P@ssw0rd123!'
         $filled = $filled -replace '{{LOCALE}}', 'en-US'
         $filled = $filled -replace '{{KEYBOARD}}', '0409:00000409'
         $filled | Should -Not -Match '{{.*}}'
@@ -228,14 +217,12 @@ Describe 'Invoke-PrepareReset.ps1 structure' {
         $prepContent | Should -Match '/reuse'
     }
 
-    It 'Generates random temp password' {
-        $prepContent | Should -Match 'Get-Random'
+    It 'Replaces COMPUTERNAME placeholder' {
+        $prepContent | Should -Match "COMPUTERNAME"
     }
 
-    It 'Replaces all template placeholders' {
-        $prepContent | Should -Match "COMPUTERNAME"
-        $prepContent | Should -Match "TEMP_ADMIN_USER"
-        $prepContent | Should -Match "TEMP_ADMIN_PASS"
+    It 'Does not create temp admin accounts' {
+        $prepContent | Should -Not -Match 'TEMP_ADMIN'
     }
 
     It 'Validates staging before reset' {
@@ -262,13 +249,14 @@ Describe 'post-setup.ps1 structure' {
         $postContent | Should -Match '/requestODJ'
     }
 
-    It 'Disables auto-logon after setup' {
-        $postContent | Should -Match 'AutoAdminLogon'
+    It 'Cleans up SetupComplete.cmd after running' {
+        $postContent | Should -Match 'SetupComplete\.cmd'
+        $postContent | Should -Match 'Remove-Item'
     }
 
-    It 'Schedules temp admin cleanup' {
-        $postContent | Should -Match 'WinReset-Cleanup'
-        $postContent | Should -Match 'Remove-LocalUser'
+    It 'Does not reference temp admin or auto-logon' {
+        $postContent | Should -Not -Match 'AutoAdminLogon'
+        $postContent | Should -Not -Match 'Remove-LocalUser'
     }
 
     It 'Reboots at the end' {
