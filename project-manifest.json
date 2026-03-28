@@ -3,5 +3,5 @@
   "Status": "active",
   "Category": "Utilities",
   "ValidationSchedule": "none",
-  "Notes": "Miscellaneous PowerShell scripts. OSD-ComputerSetup is the prestart command for WinPE imaging."
+  "Notes": "Miscellaneous PowerShell scripts. OSD-ComputerSetup rewritten as WinPE prestart command -- no ServiceUI/MDT dependency, inspired by PSADT v4.1."
 }
