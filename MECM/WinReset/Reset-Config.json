@@ -7,26 +7,61 @@
         "DefaultOU": "OU=Workstations,DC=contoso,DC=com"
     },
 
-    "Apps": {
-        "Zscaler": {
-            "InstallerPath": "\\\\fileserver\\share$\\Installers\\ZscalerConnector.exe",
-            "SilentArgs": "/S",
-            "ValidationPath": "C:\\Program Files\\Zscaler\\ZSATunnel.exe"
+    "InstallSequence": [
+        {
+            "Name": "VC++ Redistributable (x64)",
+            "InstallerFile": "vc_redist.x64.exe",
+            "SilentArgs": "/install /quiet /norestart",
+            "ValidationPath": null,
+            "RebootAfter": false,
+            "Priority": 1
         },
-        "TeamViewerHost": {
-            "InstallerPath": "\\\\fileserver\\share$\\Installers\\TeamViewer_Host.msi",
+        {
+            "Name": "VC++ Redistributable (x86)",
+            "InstallerFile": "vc_redist.x86.exe",
+            "SilentArgs": "/install /quiet /norestart",
+            "ValidationPath": null,
+            "RebootAfter": true,
+            "Priority": 2
+        },
+        {
+            "Name": ".NET Desktop Runtime 8",
+            "InstallerFile": "windowsdesktop-runtime-8.0.x-win-x64.exe",
+            "SilentArgs": "/install /quiet /norestart",
+            "ValidationPath": null,
+            "RebootAfter": false,
+            "Priority": 3
+        },
+        {
+            "Name": "Zscaler Connector",
+            "InstallerFile": "ZscalerConnector.exe",
+            "SilentArgs": "/S",
+            "ValidationPath": "C:\\Program Files\\Zscaler\\ZSATunnel.exe",
+            "RebootAfter": false,
+            "Priority": 10
+        },
+        {
+            "Name": "CrowdStrike Falcon Sensor",
+            "InstallerFile": "WindowsSensor.exe",
+            "SilentArgs": "/install /quiet /norestart CID=YOUR_CID_HERE",
+            "ValidationPath": "C:\\Program Files\\CrowdStrike\\CSFalconService.exe",
+            "RebootAfter": false,
+            "Priority": 11
+        },
+        {
+            "Name": "TeamViewer Host",
+            "InstallerFile": "TeamViewer_Host.msi",
             "SilentArgs": "/qn /norestart",
-            "ValidationPath": "C:\\Program Files\\TeamViewer\\TeamViewer.exe"
+            "ValidationPath": "C:\\Program Files\\TeamViewer\\TeamViewer.exe",
+            "RebootAfter": false,
+            "Priority": 20
         }
-    },
+    ],
 
     "MECMClient": {
         "InstallerPath": "\\\\cm01\\SMS_MCM\\Client\\ccmsetup.exe",
-        "SilentArgs": "/mp:cm01.contoso.com SMSSITECODE=MCM /NoCRLCheck"
-    },
-
-    "TempAdmin": {
-        "Username": "ResetAdmin"
+        "SilentArgs": "/mp:cm01.contoso.com SMSSITECODE=MCM /NoCRLCheck",
+        "InstallLast": true
     },
 
     "WiFi": {

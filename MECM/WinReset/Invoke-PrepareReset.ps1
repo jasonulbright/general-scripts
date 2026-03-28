@@ -187,17 +187,25 @@ foreach ($dir in @($customizationsPath, $autoApplyPath, "$customizationsPath\Ins
 Copy-Item $djoinBlobPath -Destination "$customizationsPath\odjblob.txt" -Force
 Write-Step "  Staged: odjblob.txt" -Level OK
 
-# Copy app installers
-foreach ($appName in @('Zscaler', 'TeamViewerHost')) {
-    $appConfig = $config.Apps.$appName
-    if (-not $appConfig -or -not $appConfig.InstallerPath) { continue }
+# Copy app installers from InstallSequence
+if ($config.InstallSequence) {
+    foreach ($app in $config.InstallSequence) {
+        if (-not $app.InstallerFile) { continue }
 
-    if (Test-Path $appConfig.InstallerPath -ErrorAction SilentlyContinue) {
-        $dest = Join-Path "$customizationsPath\Installers" (Split-Path $appConfig.InstallerPath -Leaf)
-        Copy-Item $appConfig.InstallerPath -Destination $dest -Force
-        Write-Step "  Staged: $appName -> $(Split-Path $dest -Leaf)" -Level OK
-    } else {
-        Write-Step "  Installer not found: $($appConfig.InstallerPath)" -Level WARN
+        # Look for the installer in common locations
+        $found = $false
+        foreach ($searchPath in @("$PSScriptRoot\Installers", "$PSScriptRoot", "$env:TEMP")) {
+            $candidate = Join-Path $searchPath $app.InstallerFile
+            if (Test-Path $candidate) {
+                Copy-Item $candidate -Destination "$customizationsPath\Installers\$($app.InstallerFile)" -Force
+                Write-Step "  Staged: $($app.Name) -> $($app.InstallerFile)" -Level OK
+                $found = $true
+                break
+            }
+        }
+        if (-not $found) {
+            Write-Step "  Not found: $($app.Name) ($($app.InstallerFile)) -- place in .\Installers\ before running" -Level WARN
+        }
     }
 }
 
