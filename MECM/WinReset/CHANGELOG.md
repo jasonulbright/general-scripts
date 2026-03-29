@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.0] - 2026-03-28
+## [1.0.5] - 2026-03-28
 
 ### Added
 - **Zero-touch remote factory reset** — capture machine state, stage recovery payload, wipe, auto-restore with domain join + cert import + app install + MECM client bootstrap
@@ -14,7 +14,7 @@
 ### Changed
 - `Invoke-FactoryReset.ps1` — added pre-flight check warning if no recovery payload is staged
 
-## [1.0.0] - 2026-03-28
+## [1.0.4] - 2026-03-28
 
 ### Added
 - Initial release: `Invoke-FactoryReset.ps1` using MDM_RemoteWipe CIM class
