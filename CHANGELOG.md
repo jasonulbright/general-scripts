@@ -2,6 +2,14 @@
 
 All notable changes to General Scripts are documented in this file.
 
+## [1.0.6] - 2026-03-29
+
+### Added
+- **HyperV/Watch-VMLog.ps1** -- tail a log file inside a Hyper-V VM via PowerShell Direct with color-coded ERROR/WARNING output
+- **HyperV/Get-VMLogInventory.ps1** -- discover running processes and log files across common paths inside a Hyper-V VM
+- **Drivers/Remove-DriverStoreEntries.ps1** -- remove stubborn drivers from the Windows driver store by regex pattern with FileRepository cleanup and -WhatIf support
+- **Filesystem/ConvertTo-Icon.ps1** -- convert PNG/JPG/BMP to multi-size .ico (256/48/32/16px), supports CLI and drag-and-drop GUI
+
 ## [1.0.2] - 2026-03-24
 
 ### Added
