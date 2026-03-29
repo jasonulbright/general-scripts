@@ -1,24 +1,28 @@
 # Zero-Touch Remote Factory Reset
 
-Remotely factory reset a Windows device and have it automatically rejoin the domain with the same hostname, reinstall critical apps, and bootstrap the MECM client — zero human interaction.
+Remotely factory reset a Windows device and have it automatically rejoin the domain with the same hostname, reinstall certificates, apps, security software, and the MECM client — zero human interaction.
 
-Replaces full PXE reimaging for device refresh scenarios. Uses the MDM Bridge WMI provider (`MDM_RemoteWipe`) for the reset and `djoin.exe` offline domain join + `unattend.xml` for automatic post-reset recovery.
+Replaces full PXE reimaging for device refresh scenarios. Uses the MDM Bridge WMI provider (`MDM_RemoteWipe`) for the reset and `djoin.exe` offline domain join + `unattend.xml` + `SetupComplete.cmd` for automatic post-reset recovery.
 
 ## How It Works
 
 **Phase 1 — Prep** (device is online, domain-joined):
 1. `Invoke-PrepareReset.ps1` captures the computer name and OU
 2. Generates an offline domain join blob via `djoin.exe`
-3. Copies app installers (Zscaler, TeamViewer Host) to `C:\Recovery\Customizations\`
-4. Generates `unattend.xml` (skips OOBE, sets computer name, creates temp admin)
-5. Places everything in `C:\Recovery\` (survives factory reset)
+3. Copies certificates, app installers, and scripts to `C:\Recovery\Customizations\`
+4. Generates `unattend.xml` (skips OOBE, sets computer name, stages SetupComplete.cmd)
+5. Places everything in `C:\Recovery\` (survives factory reset on the OS partition)
 6. Triggers `Invoke-FactoryReset.ps1`
 
 **Phase 2 — Auto-restore** (device reboots into OOBE):
-1. `unattend.xml` skips all OOBE screens, auto-logs in as temp admin
-2. `post-setup.ps1` runs: applies domain join, installs apps, starts MECM client
-3. Cleans up temp admin, disables auto-logon, reboots
-4. Device boots to the login screen — domain-joined, apps installed, same hostname
+1. `unattend.xml` skips all OOBE screens, sets computer name
+2. `SetupComplete.cmd` runs `post-setup.ps1` as SYSTEM (before any user logs in)
+3. Offline domain join applied, certificates imported, apps installed in priority order
+4. If a step requires reboot, the script resumes from the next step on next boot
+5. MECM client starts (async), SetupComplete.cmd self-deletes
+6. Final reboot — device boots to the login screen, fully configured
+
+No temporary admin accounts. No auto-logon. No passwords in unattend.xml. Everything runs as SYSTEM via SetupComplete.cmd.
 
 ## Requirements
 
@@ -27,35 +31,45 @@ Replaces full PXE reimaging for device refresh scenarios. Uses the MDM Bridge WM
 | OS | Windows 10 21H2+ or Windows 11 (including 24H2) |
 | Permissions | Local admin on the device |
 | Domain Join | Service account with "Join computers to domain" on the target OU |
-| App Installers | Zscaler/TeamViewer available on a network share or local path |
+| Installers | Certificates and app installers available locally or on a network share |
 | MECM | Optional — ccmsetup.exe path for client reinstall |
 
 ## Setup
 
 ### 1. Configure `Reset-Config.json`
 
-Edit for your environment: domain FQDN, OU, app installer paths, MECM client settings.
+Edit for your environment: domain, install sequence (certificates, runtimes, security software, apps), MECM client settings.
 
 ### 2. Generate djoin credentials (one-time)
 
-The service account for `djoin.exe /provision` needs encrypted credentials:
-
 ```powershell
+# Reuse Export-MECMCredential.ps1 or create djoin-specific credentials
 .\Export-MECMCredential.ps1
-# Enter the service account with domain join permissions
-# Creates: djoin.key, djoin.user, djoin.pass
+# Rename output to: djoin.key, djoin.user, djoin.pass
 ```
 
-Rename the output files to `djoin.key`, `djoin.user`, `djoin.pass` (or reuse `mecm.*` files if the same account).
+### 3. Stage installers
 
-### 3. Stage app installers
+Create an `Installers\` folder next to the scripts. Place all files referenced in `Reset-Config.json`:
 
-Place Zscaler and TeamViewer Host installers on a network share accessible from the target device. Update paths in `Reset-Config.json`.
+```
+MECM/WinReset/
+    Installers/
+        vc_redist.x64.exe
+        vc_redist.x86.exe
+        windowsdesktop-runtime-8.0.x-win-x64.exe
+        CiscoSecureConnect-RootCA.cer
+        ZscalerRootCA.cer
+        S1-RootCA.cer
+        ZscalerConnector.exe
+        WindowsSensor.exe
+        TeamViewer_Host.msi
+```
 
 ## Usage
 
 ```powershell
-# Test staging without resetting (verify artifacts in C:\Recovery\)
+# Test staging without resetting (verify C:\Recovery\ contents)
 .\Invoke-PrepareReset.ps1 -SkipReset
 
 # Full zero-touch reset (interactive confirmation)
@@ -68,15 +82,62 @@ Place Zscaler and TeamViewer Host installers on a network share accessible from 
 .\Invoke-FactoryReset.ps1 -Force
 ```
 
+## Install Sequence
+
+The `InstallSequence` array in `Reset-Config.json` controls what gets installed and in what order. Each step has:
+
+| Field | Description |
+|---|---|
+| `Name` | Display name for logging |
+| `InstallerFile` | Filename in the `Installers\` folder |
+| `SilentArgs` | Arguments passed to the installer (or cert store name for .cer/.pfx) |
+| `ValidationPath` | Path to check after install (optional) |
+| `RebootAfter` | If true, reboots and resumes from the next step |
+| `Priority` | Execution order (lower = first) |
+
+### Supported file types
+
+| Extension | Behavior | SilentArgs |
+|---|---|---|
+| `.exe` | Direct execution | Install switches |
+| `.msi` | `msiexec /i` | MSI properties |
+| `.bat` / `.cmd` | `cmd /c` | Command line args |
+| `.ps1` | `powershell -File` | Script parameters |
+| `.cer` | Import to cert store | Store name: `Root`, `CA`, `My`, `TrustedPublisher` |
+| `.pfx` / `.p12` | `Import-PfxCertificate` | Store name |
+
+### Recommended priority order
+
+| Priority | Category | Examples |
+|---|---|---|
+| 1-3 | Runtimes | VC++ x64/x86, .NET 8 |
+| 5-7 | Certificates | Root CAs for Zscaler, Cisco, SentinelOne |
+| 10-15 | Security software | Zscaler, CrowdStrike, SentinelOne |
+| 20+ | Management tools | TeamViewer Host |
+| Last | MECM client | ccmsetup.exe (async, set `InstallLast: true`) |
+
+## Remote Support Scenario
+
+For a remote user connected via ZPA with a broken MECM client:
+
+1. Admin TeamViewers into the device
+2. Copies `WinReset\` folder (with Installers) to `C:\temp\WinReset`
+3. Runs: `.\Invoke-PrepareReset.ps1 -Force`
+4. Device resets, OOBE skips, certs install, apps install, domain rejoins
+5. TeamViewer Host comes back online — admin has remote access
+6. User gets a login screen with a fully configured, secured device
+
+No PXE, no USB, no physical access. The prep phase captures everything while ZPA is up; the restore phase is fully offline.
+
 ## Homelab Testing
 
 1. Configure `Reset-Config.json` with contoso.com / DC01 / CM01 values
-2. Place dummy installers on a share (or skip app install for first test)
+2. Place dummy installers in `Installers\` (or skip app install for first test)
 3. Run `Invoke-PrepareReset.ps1 -SkipReset` on CLIENT01
 4. Inspect `C:\Recovery\AutoApply\unattend.xml` and `C:\Recovery\Customizations\`
 5. Run `Invoke-PrepareReset.ps1 -Force` on CLIENT01
-6. Watch: OOBE skip, auto-logon, post-setup.ps1 execution, final reboot
-7. Verify: domain join (`dsregcmd /status`), computer name, app installs
+6. Watch: OOBE skip → SetupComplete.cmd → post-setup.ps1 → reboot(s) → login screen
+7. Verify: domain join, computer name, certificates, app installs, MECM client
 
 ## File Structure
 
@@ -84,51 +145,48 @@ Place Zscaler and TeamViewer Host installers on a network share accessible from 
 MECM/WinReset/
     Invoke-FactoryReset.ps1           # MDM_RemoteWipe trigger (with pre-flight check)
     Invoke-PrepareReset.ps1           # Orchestrator: capture, stage, wipe
-    post-setup.ps1                    # Post-reset: domain join, apps, cleanup
+    post-setup.ps1                    # Post-reset: certs, domain join, apps, cleanup
     unattend-template.xml             # OOBE skip template (parameterized)
     Reset-Config.json                 # Environment configuration
     Invoke-PrepareReset.Tests.ps1     # Pester tests (44 tests)
     README.md                         # This file
     CHANGELOG.md                      # Version history
+    Installers/                       # Cert and app installer files (user-provided)
 ```
 
 ## Troubleshooting
 
-### Post-setup failed
-Check the log: `C:\Recovery\Customizations\post-setup.log`
+### Post-setup log
+`C:\Recovery\Customizations\post-setup.log` — full transcript of every step.
 
-The device will be at a local admin desktop (temp account). Re-run manually:
-```powershell
-C:\Recovery\Customizations\post-setup.ps1
-```
+### Reboot-resume stuck
+Check `HKLM:\SOFTWARE\WinReset\CurrentStep` — shows which step it's on. Reset to 0 and re-run `post-setup.ps1` manually to retry all steps.
 
 ### Domain join failed
-Check `djoin.exe` exit code in `post-setup.log`. Common causes:
-- Blob expired (regenerate with `Invoke-PrepareReset.ps1 -SkipReset`)
+Check `djoin.exe` exit code in the log. Common causes:
+- Blob expired (regenerate with `-SkipReset`)
 - Computer account deleted from AD after prep
-- OU permissions insufficient
+- OU permissions insufficient for the service account
 
 ### OOBE not skipped (24H2)
-The unattend includes `BypassNRO` registry key and `HideWirelessSetupInOOBE`. If OOBE still shows network screen, press Shift+F10 and run:
+The unattend includes `BypassNRO` and `HideWirelessSetupInOOBE`. If OOBE still shows a network screen, press Shift+F10:
 ```cmd
 reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OOBE /v BypassNRO /t REG_DWORD /d 1 /f
 shutdown /r /t 0
 ```
 
-### Reset fails to start
-`MDM_RemoteWipe` requires the WinRE recovery partition to be intact. Verify:
-```powershell
-reagentc /info
-```
+### Reset won't start
+WinRE recovery partition must be intact: `reagentc /info`
 
-## Security Notes
+## Security
 
-- Temp admin password is randomly generated (16 chars) and embedded in unattend.xml
-- The temp account is deleted by a scheduled task on the first real boot
-- Auto-logon is disabled by post-setup.ps1 before reboot
-- Credential files (djoin.key/user/pass) should be secured with NTFS permissions
-- `C:\Recovery\Customizations\` is readable by all users — do not store secrets there long-term
+- No temporary user accounts created at any point
+- No passwords stored in unattend.xml or registry
+- `post-setup.ps1` runs as SYSTEM via SetupComplete.cmd (same as SCCM TS steps)
+- `SetupComplete.cmd` self-deletes after execution
+- Credential files (`djoin.key/user/pass`) should be NTFS-secured
+- `C:\Recovery\Customizations\` — readable by all users; do not store secrets long-term
 
 ## Attribution
 
-Factory reset mechanism based on the MDM Bridge WMI approach documented in [r/SCCM community](https://www.reddit.com/r/SCCM/comments/1rv47wj/).
+Factory reset mechanism from [r/SCCM](https://www.reddit.com/r/SCCM/comments/1rv47wj/) community (MDM Bridge WMI approach for Windows 24H2+).
