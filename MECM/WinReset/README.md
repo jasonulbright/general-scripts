@@ -66,19 +66,69 @@ MECM/WinReset/
         TeamViewer_Host.msi
 ```
 
-## Usage
+## Deployment Methods
+
+### SCCM / MECM (fleet-wide or targeted)
+
+1. Create an SCCM **Package** (no program needed initially) with `WinReset\` folder (including `Installers\`) as the source directory
+2. Create a **Program** on the package:
+   - Command line: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File Invoke-PrepareReset.ps1 -Force`
+   - Run: Hidden
+   - Run with: Administrative rights
+   - Allow users to interact: No
+3. Distribute content to your DPs
+4. Deploy to a device collection (Required or Available depending on your workflow)
+5. The device stages everything, wipes, and auto-restores — no user interaction
+
+### Remote Support (single device via TeamViewer)
+
+For a remote user with a broken device where SCCM isn't functional:
+
+1. TeamViewer into the device
+2. Copy the entire `WinReset\` folder (with `Installers\`) to `C:\temp\WinReset`
+3. Open an **admin PowerShell** on the remote device
+4. Run:
+   ```powershell
+   cd C:\temp\WinReset
+   .\Invoke-PrepareReset.ps1 -Force
+   ```
+5. Disconnect TeamViewer — the device handles the rest
+6. TeamViewer Host reinstalls automatically; admin regains access after reset completes
+
+### Homelab Testing
+
+Test the full flow on CLIENT01 without committing to a wipe first:
+
+1. Stage everything without resetting:
+   ```powershell
+   .\Invoke-PrepareReset.ps1 -SkipReset
+   ```
+2. Inspect the staged artifacts:
+   - `C:\Recovery\AutoApply\unattend.xml` — verify computer name, locale
+   - `C:\Recovery\Customizations\post-setup.ps1` — verify script staged
+   - `C:\Recovery\Customizations\Reset-Config.json` — verify config
+   - `C:\Recovery\Customizations\odjblob.txt` — verify domain join blob
+   - `C:\Recovery\Customizations\Installers\` — verify all files present
+3. When satisfied, trigger the wipe:
+   ```powershell
+   .\Invoke-FactoryReset.ps1 -Force
+   ```
+4. Watch: OOBE skip → SetupComplete.cmd → post-setup.ps1 → reboot(s) → login screen
+5. Verify: domain join (`dsregcmd /status`), computer name, certificates, app installs, MECM client
+
+### Quick Reference
 
 ```powershell
-# Test staging without resetting (verify C:\Recovery\ contents)
+# Test staging only (no wipe)
 .\Invoke-PrepareReset.ps1 -SkipReset
 
-# Full zero-touch reset (interactive confirmation)
+# Full reset with confirmation prompt
 .\Invoke-PrepareReset.ps1
 
-# SCCM deployment (no prompts)
+# Full reset without prompts (SCCM / scripted)
 .\Invoke-PrepareReset.ps1 -Force
 
-# Standalone reset without auto-restore (bare OOBE)
+# Bare reset without auto-restore (clean OOBE, no automation)
 .\Invoke-FactoryReset.ps1 -Force
 ```
 
