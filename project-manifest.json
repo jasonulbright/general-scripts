@@ -1,0 +1,8 @@
+{
+  "ProjectType": "powershell-script",
+  "Description": "Collection of PowerShell utility scripts organized by category",
+  "Status": "active",
+  "Category": "Utilities",
+  "ValidationSchedule": "none",
+  "Notes": "TASK: WinReset needs homelab testing before production use"
+}
