@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.7] - 2026-04-09
+
+### Added
+- Pre-flight checks in `Invoke-PrepareReset.ps1`: pending reboot (CBS, Windows Update, file rename), AC power (laptops), and disk space (20GB minimum) — blocks reset before any staging work begins
+
 ## [1.0.5] - 2026-03-28
 
 ### Added

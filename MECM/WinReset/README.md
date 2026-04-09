@@ -33,6 +33,9 @@ No temporary admin accounts. No auto-logon. No passwords in unattend.xml. Everyt
 | Domain Join | Service account with "Join computers to domain" on the target OU |
 | Installers | Certificates and app installers available locally or on a network share |
 | MECM | Optional — ccmsetup.exe path for client reinstall |
+| Power | Laptops must be on AC power |
+| Disk space | 20GB+ free on the system drive |
+| Reboot state | No pending reboots (Windows Update, CBS, etc.) |
 
 ## Setup
 
