@@ -4,7 +4,8 @@
     Prepares a device for zero-touch factory reset with automatic domain rejoin.
 
 .DESCRIPTION
-    Captures machine identity, generates an offline domain join blob, stages
+    Validates pre-flight conditions (pending reboots, AC power, disk space),
+    captures machine identity, generates an offline domain join blob, stages
     recovery payload (unattend.xml, post-setup script, app installers), then
     triggers a factory reset. After reset, the device automatically:
     - Skips OOBE
@@ -102,6 +103,34 @@ if (-not (Test-Path $djoinPath)) {
     exit 1
 }
 Write-Step "  djoin.exe: found" -Level OK
+
+# Pending reboot (CBS, Windows Update, or file rename operations)
+$rebootPending = (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or
+                 (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired') -or
+                 (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\PendingFileRenameOperations' -ErrorAction SilentlyContinue)
+if ($rebootPending) {
+    Write-Step "  A system reboot is pending. Reboot the device before attempting reset." -Level FAIL
+    exit 1
+}
+Write-Step "  Pending reboot: none" -Level OK
+
+# AC power (laptops only -- skip if no battery present)
+$battery = Get-CimInstance -ClassName Win32_Battery -ErrorAction SilentlyContinue
+if ($battery -and $battery.BatteryStatus -ne 2) {
+    Write-Step "  Device is on battery power. Plug in AC power before attempting reset." -Level FAIL
+    exit 1
+}
+$powerMsg = if ($battery) { 'AC power' } else { 'desktop (no battery)' }
+Write-Step "  Power: $powerMsg" -Level OK
+
+# Disk space (Windows 11 PBR needs significant working room)
+$sysDrive = Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DeviceID='$($env:SystemDrive)'"
+$freeGB   = [math]::Round($sysDrive.FreeSpace / 1GB, 1)
+if ($freeGB -lt 20) {
+    Write-Step "  Insufficient disk space: ${freeGB}GB free on $($env:SystemDrive). Minimum 20GB required." -Level FAIL
+    exit 1
+}
+Write-Step "  Disk space: ${freeGB}GB free on $($env:SystemDrive)" -Level OK
 
 # ── Capture machine state ────────────────────────────────────────────────────
 
