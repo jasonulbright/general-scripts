@@ -100,7 +100,7 @@ For a remote user with a broken device where SCCM isn't functional:
 
 ### Homelab Testing
 
-Test the full flow on CLIENT01 without committing to a wipe first:
+Test the full flow on a test VM without committing to a wipe first:
 
 1. Stage everything without resetting:
    ```powershell
@@ -186,9 +186,9 @@ No PXE, no USB, no physical access. The prep phase captures everything while ZPA
 
 1. Configure `Reset-Config.json` with contoso.com / DC01 / CM01 values
 2. Place dummy installers in `Installers\` (or skip app install for first test)
-3. Run `Invoke-PrepareReset.ps1 -SkipReset` on CLIENT01
+3. Run `Invoke-PrepareReset.ps1 -SkipReset` on the test VM
 4. Inspect `C:\Recovery\AutoApply\unattend.xml` and `C:\Recovery\Customizations\`
-5. Run `Invoke-PrepareReset.ps1 -Force` on CLIENT01
+5. Run `Invoke-PrepareReset.ps1 -Force` on the test VM
 6. Watch: OOBE skip → SetupComplete.cmd → post-setup.ps1 → reboot(s) → login screen
 7. Verify: domain join, computer name, certificates, app installs, MECM client
 
