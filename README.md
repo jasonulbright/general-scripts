@@ -25,6 +25,7 @@ A collection of PowerShell utility scripts organized by category.
 | [Set-MECMManagementPoint.ps1](MECM/Set-MECMManagementPoint.ps1) | Force MECM clients to use a specific Management Point by cleaning cached MP references in registry, WMI, and CCM data stores. Supports batch deployment via PS-Remote. |
 | [remove-appdeployments.ps1](MECM/remove-appdeployments.ps1) | Remove all deployments for a specific MECM application with review and confirmation |
 | [cachebaseline/](MECM/cachebaseline/) | MECM Configuration Baseline for automated CCM cache cleanup. Clears non-persistent cache content on a weekly schedule while preserving pinned content. Includes CI/CB creation script, standalone discovery/remediation scripts, and deployment docs. |
+| [client-check/](MECM/client-check/) | End-user self-service diagnostic tool for "I can't install this from Software Center" triage. Generates a self-contained HTML report of device state (OS, uptime, system drive free, network + MAC, computer DN + Entra join, Registry.pol signature, pending reboot, installed apps 32/64/user, MECM client status) plus the last 20 errors and warnings in a 24h window across 25+ CCM logs and the SCClient user log. Shared-read so it coexists with CcmExec; reads `.log` and `.lo_`. Banner up top tells the user to reboot before submitting a ticket when applicable. Opens in Edge. |
 
 ## HyperV
 
