@@ -2,6 +2,25 @@
 
 All notable changes to General Scripts are documented in this file.
 
+## [1.0.9] - 2026-04-20
+
+### Added
+- **CodeQuality/Find-EmptyCatchBlocks.ps1** -- AST-based finder for empty `catch {}` blocks across `.ps1` / `.psm1` files; useful for auditing error-handling coverage in a module or script tree.
+- **CodeQuality/Test-ScriptSyntax.ps1** -- AST parse-error checker across a path; returns exit code 1 when any script fails to parse. Drop-in pre-commit / CI gate.
+- **DotNet/Get-AssemblyInfo.ps1** -- Reflection-based .NET DLL inspector. Enumerates all public types with their declared properties, methods (excluding property accessors), and custom attributes. Useful when decompiling or retargeting a vendored library.
+- **Registry/Search-ARPEntries.ps1** -- Searches HKLM Uninstall (both bitnesses) and HKCR Installer\Products by DisplayName, version, and Publisher with AND-matched wildcard logic. Complements Remove-AppRegistryEntries for read-only discovery.
+- **MECM/deploy-allapps.ps1** -- Creates a Required Install deployment for every CM application against a target collection. Lab / first-pass testing helper; refuses broad collections by design.
+- **MECM/deploy-undeployedapps.ps1** -- Required Install deployment only for apps that currently have no deployment anywhere; gap-filler pass. Idempotent, safe to re-run.
+- **MECM/distribute-allcontent.ps1** -- Distributes content for every CM application to a DP group; treats "already targeted" as a non-error. Optional -NamePattern filter.
+- **MECM/remove-allapps.ps1** -- Bulk-removes every CM application in the site; refuses if any application still has a deployment (pair with remove-alldeployments).
+- **MECM/remove-alldeployments.ps1** -- Removes every application deployment across the site, regardless of target collection. Destructive; intended for lab resets.
+- **MECM/remove-deploymentsbypattern.ps1** -- Removes every deployment of pattern-matched apps on a target collection without recreating any new deployment. For clearing conflicts mid-test.
+- **MECM/set-availabledeployment.ps1** -- Switches pattern-matched apps from any existing deployment to a Required-less Available deployment on a collection. Built around the M365 ODT / Click-to-Run variant case.
+- **MECM/switch-deploymentstouninstall.ps1** -- Converts every Install deployment on a collection to an Uninstall deployment, with a -KeepInstalledPattern regex for excluding system dependencies (VC++, WebView2, runtimes).
+
+### Fixed
+- Stripped em-dashes and en-dashes from 7 `.ps1` files (`Filesystem/ConvertTo-Icon.ps1` plus 6 new MECM helpers). PowerShell's parser is fine with them in comments, but downstream consumers (extraction, logging) and our house style disallow non-ASCII dashes in scripts.
+
 ## [1.0.8] - 2026-04-20
 
 ### Added
