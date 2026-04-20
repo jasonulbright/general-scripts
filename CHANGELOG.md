@@ -2,6 +2,11 @@
 
 All notable changes to General Scripts are documented in this file.
 
+## [1.0.8] - 2026-04-20
+
+### Added
+- **MECM/client-check/** -- end-user self-service diagnostic tool that generates a single self-contained HTML report for support triage when a user cannot install something from Software Center. Gathers OS, uptime, disks (system drive shown as "X GB free of Y GB"), network adapters with MAC + IPv4/IPv6, computer distinguishedName via ADSISearcher plus `dsregcmd /status` Entra state, Registry.pol signature health (PReg v1 check for both Machine and User scope), pending-reboot state (CBS, WU-AU, pending file rename, CCM client SDK), installed applications from HKLM 64-bit, HKLM 32-bit, and HKCU (SystemComponent=1 excluded), MECM client version, site code, MP, last policy eval / HWInv / SWInv, and the last 20 errors and warnings from 25+ CCM client logs plus the SCClient user log from %TEMP%. Time-filtered to a 24-hour window by default (-HoursBack to override), reads both `.log` and rolled `.lo_` companion, uses FileShare.ReadWrite to coexist with CcmExec. When elevated, also pulls Application + System event log events. Big red banner at the top of the report when a reboot is pending, amber when uptime exceeds 24 hours. Launches in Edge. Writes `C:\temp\<user>_<host>_<timestamp>.html`.
+
 ## [1.0.6] - 2026-03-29
 
 ### Added
