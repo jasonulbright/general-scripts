@@ -8,7 +8,7 @@
     and drag-and-drop GUI modes.
 
     CLI:   .\ConvertTo-Icon.ps1 -FileIn "icon.png" -FileOut "icon.ico"
-    GUI:   .\ConvertTo-Icon.ps1   (no parameters — opens drop target window)
+    GUI:   .\ConvertTo-Icon.ps1   (no parameters - opens drop target window)
 
 .PARAMETER FileIn
     Path to the source image (PNG, JPG, BMP, or SVG).
