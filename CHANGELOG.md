@@ -2,6 +2,19 @@
 
 All notable changes to General Scripts are documented in this file.
 
+## [1.0.10] - 2026-05-30
+
+### Added
+- **MECM/CI-CB/** -- MECM Configuration Item / Baseline builders using native `Add-CMComplianceSettingRegistryKeyValue` (inline value-rule attachment), grouped under Compliance / Hardening / CVE-Remediation folders. Each control folder carries a `metadata.psd1` describing its reg surface, OS scope, and the CI/CB it produces.
+- **MECM/CI-CB/CVE-Remediation/Intel-SpecExec-Mitigations/New-IntelSpecExecBaseline.ps1** -- bundled Intel speculative-execution mitigation CI/CB in HT-enabled and HT-disabled variants, covering 12 CVEs (Spectre v2, Meltdown, SSBD, L1TF, MDS family, TAA, SRBDS, BHI) through the `FeatureSettingsOverride` / `FeatureSettingsOverrideMask` DWORDs.
+- **MECM/CI-CB/Compliance/SMBv1-Disable/**, **Compliance/TLS-Legacy-Disable/**, **Hardening/LLMNR-Disable/** -- native baseline builders for SMBv1 server disable, legacy TLS/SSL disable + TLS 1.2 enable + .NET strong crypto, and LLMNR disable. These supersede the earlier script-based builders whose rules never attached (false Compliant); rules now attach inline.
+- **MECM/Collections/New-HTBasedCollections.ps1** -- creates HT-Enabled / HT-Disabled query collections (WQL against `SMS_G_System_PROCESSOR`) to target the bundled spec-exec baselines by Hyper-Threading state.
+- **MECM/WinPE/OSD-ComputerSetup/Gather-ADOUandHostname.ps1** -- pre-WinPE OSD refresh step that captures the current hostname and AD OU into the `OSDComputerName` / `OSDDomainOUName` task-sequence variables so a rebuilt machine keeps its identity and OU placement.
+- **native-installers/** -- ten read-only metadata extractors for Windows installer formats (nuspec/nupkg, intunewin, msix/appx, msixbundle, PSADT, Squirrel, MSI properties + summary info, MSP, WiX Burn). Native-only: PowerShell + .NET BCL + documented Windows COM, no bundled DLLs, no third-party modules, no external tools.
+- **Registry/New-SpecExecBitmask.ps1** -- WPF helper that builds the `FeatureSettingsOverride` / `FeatureSettingsOverrideMask` bitmask from checkbox-selected mitigations (Intel bundle, BHI, AMD Branch Type Confusion, AMD Inception) and HT state, then writes a small remediation `.ps1`. Bit values per KB4072698 / KB4073119.
+- **CodeQuality/Fix-PsClosures.py** -- rewrites bare scriptblock closures to append `.GetNewClosure()` where a captured variable would otherwise go stale. Idempotent; edits applied end-to-start so offsets stay valid.
+- **CodeQuality/Fix-WpfButtonCasing.py** -- inserts `Controls:ControlsHelper.ContentCharacterCasing="Normal"` on WPF `<Button>` elements. Idempotent.
+
 ## [1.0.9] - 2026-04-20
 
 ### Added
