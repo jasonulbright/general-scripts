@@ -2,6 +2,15 @@
 
 All notable changes to General Scripts are documented in this file.
 
+## [1.0.11] - 2026-06-18
+
+### Added
+- **MECM/CI-CB/Configuration/DeliveryOptimization-DownloadMode/** -- enforces Delivery Optimization `DODownloadMode` per OS class: clients = 0 (HTTP, no peering), servers = 99 (HTTP, no peering, no DO cloud). Builds one CI + baseline per class, deployed to separate collections (a single value rule can't branch by OS).
+- **MECM/CI-CB/Hardening/** -- five native baseline builders: WDigest credential caching off (`UseLogonCredential=0`), LSA Protection (`RunAsPPL=1`, reboot to engage), NTLMv2-only (`LmCompatibilityLevel=5`), SMB signing required client+server (`RequireSecuritySignature=1`), anonymous-enumeration restrictions (`RestrictAnonymous`/`RestrictAnonymousSAM`/`EveryoneIncludesAnonymous`).
+- **MECM/CI-CB/Compliance/** -- five native baseline builders: UAC remote restriction (`LocalAccountTokenFilterPolicy=0`), Windows Installer AlwaysInstallElevated off (`AlwaysInstallElevated=0`), PowerShell script block logging (`EnableScriptBlockLogging=1`, event 4104), Autorun/Autoplay off (`NoDriveTypeAutoRun=255`), RDP NLA + TLS required (`UserAuthentication=1`, `SecurityLayer=2`).
+- **MECM/Collections/New-OSClassCollections.ps1** -- "Devices: Windows Clients" (ProductType 1) + "Devices: Windows Servers" (ProductType 2/3) query collections; deploy targets for per-OS-class baselines.
+- **MECM/Collections/New-WindowsDevicesCollection.ps1** -- "All Windows Devices" query collection; universal deploy target for the fleet-wide hardening / compliance baselines.
+
 ## [1.0.10] - 2026-05-30
 
 ### Added

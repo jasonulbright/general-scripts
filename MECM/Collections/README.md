@@ -14,6 +14,8 @@ Run the scripts directly from a workstation with the MECM admin console installe
 | Script | Creates | Used by |
 |--|--|--|
 | [`New-HTBasedCollections.ps1`](New-HTBasedCollections.ps1) | "Devices: Hyperthreading Enabled" + "Devices: Hyperthreading Disabled" | `CI-CB/CVE-Remediation/Intel-SpecExec-Mitigations/` |
+| [`New-OSClassCollections.ps1`](New-OSClassCollections.ps1) | "Devices: Windows Clients" (ProductType 1) + "Devices: Windows Servers" (ProductType 2/3) | `CI-CB/Configuration/DeliveryOptimization-DownloadMode/` |
+| [`New-WindowsDevicesCollection.ps1`](New-WindowsDevicesCollection.ps1) | "All Windows Devices" | Fleet-wide `CI-CB/Hardening/` + `CI-CB/Compliance/` baselines |
 
 ## Convention
 
