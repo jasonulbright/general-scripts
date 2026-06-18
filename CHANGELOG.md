@@ -2,6 +2,11 @@
 
 All notable changes to General Scripts are documented in this file.
 
+## [1.0.12] - 2026-06-18
+
+### Added
+- **MECM/CI-CB/Configuration/Acrobat-AllToolsPane-Fix/** -- temporary Adobe-supplied workaround for the Acrobat bug where the All Tools pane disappears / goes empty on Edit PDF (`HKLM\SOFTWARE\Policies\Adobe\Adobe Acrobat\DC\FeatureLockDown\bGenCoverPagesLabelStrings = 1`). Native registry CI/baseline; requires Acrobat + host restart. Retire once Adobe ships the permanent patch.
+
 ## [1.0.11] - 2026-06-18
 
 ### Added
