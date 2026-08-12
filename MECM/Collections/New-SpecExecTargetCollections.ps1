@@ -239,27 +239,41 @@ try {
     # Create each collection in the matrix
     # ========================================================================
 
+    # CM cmdlets do not reliably honor $ErrorActionPreference; every call
+    # passes -ErrorAction Stop explicitly and failures are caught per entry
+    # so one bad collection cannot silently end the run.
+    Write-Host "Matrix entries to create: $(@($Matrix).Count)"
+    $failures = @()
+
     foreach ($entry in $Matrix) {
         Write-Host "Creating collection: $($entry.Name)"
 
-        if (Get-CMDeviceCollection -Name $entry.Name) {
-            Write-Host "  Already exists, skipping." -ForegroundColor Yellow
-            continue
+        try {
+            if (Get-CMDeviceCollection -Name $entry.Name -ErrorAction Stop) {
+                Write-Host "  Already exists, skipping." -ForegroundColor Yellow
+                continue
+            }
+
+            New-CMDeviceCollection `
+                -Name $entry.Name `
+                -LimitingCollectionName $LimitingCollectionName `
+                -RefreshType Both `
+                -RefreshSchedule $dailySchedule `
+                -Comment $entry.Comment `
+                -ErrorAction Stop | Out-Null
+
+            Add-CMDeviceCollectionQueryMembershipRule `
+                -CollectionName $entry.Name `
+                -QueryExpression $entry.Query `
+                -RuleName $entry.RuleName `
+                -ErrorAction Stop
+
+            Write-Host "  Created and query rule attached." -ForegroundColor Green
         }
-
-        New-CMDeviceCollection `
-            -Name $entry.Name `
-            -LimitingCollectionName $LimitingCollectionName `
-            -RefreshType Both `
-            -RefreshSchedule $dailySchedule `
-            -Comment $entry.Comment | Out-Null
-
-        Add-CMDeviceCollectionQueryMembershipRule `
-            -CollectionName $entry.Name `
-            -QueryExpression $entry.Query `
-            -RuleName $entry.RuleName
-
-        Write-Host "  Created and query rule attached." -ForegroundColor Green
+        catch {
+            $failures += $entry.Name
+            Write-Host "  FAILED: $($_.Exception.Message)" -ForegroundColor Red
+        }
     }
 
     # ========================================================================
@@ -270,18 +284,43 @@ try {
     Write-Host "Triggering initial collection evaluation..."
 
     foreach ($entry in $Matrix) {
-        Invoke-CMCollectionUpdate -Name $entry.Name
+        if ($failures -notcontains $entry.Name) {
+            Invoke-CMCollectionUpdate -Name $entry.Name -ErrorAction SilentlyContinue
+        }
     }
 
     Write-Host "  Evaluation queued. Membership populates within a few minutes." -ForegroundColor Green
 
+    # ========================================================================
+    # Verify server-side: every matrix name must exist as a collection
+    # ========================================================================
+
+    Write-Host ""
+    Write-Host "=== Verification (server-side) ===" -ForegroundColor Cyan
+    $missing = @()
+    foreach ($entry in $Matrix) {
+        $exists = Get-CMDeviceCollection -Name $entry.Name -ErrorAction SilentlyContinue
+        if ($exists) {
+            Write-Host "  OK      $($entry.Name)"
+        }
+        else {
+            $missing += $entry.Name
+            Write-Host "  MISSING $($entry.Name)" -ForegroundColor Red
+        }
+    }
+
     Write-Host ""
     Write-Host "=== Summary ===" -ForegroundColor Cyan
     Write-Host "Limiting collection: $LimitingCollectionName"
-    foreach ($entry in $Matrix) {
-        Write-Host "  $($entry.Name)"
-    }
+    Write-Host "Exist on site:       $(@($Matrix).Count - $missing.Count) of $(@($Matrix).Count)"
     Write-Host "Refresh:             Incremental + Daily full"
+    if ($failures.Count -gt 0) {
+        Write-Host "Failed this run:     $($failures -join '; ')" -ForegroundColor Red
+    }
+    if ($missing.Count -gt 0) {
+        Write-Host ""
+        Write-Warning "Not all collections exist. Rerun after fixing the FAILED errors above; existing collections are skipped."
+    }
     Write-Host ""
     Write-Host "Next:" -ForegroundColor Yellow
     Write-Host "  1. Wait a few minutes, then verify membership counts in the console."
