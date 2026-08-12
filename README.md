@@ -54,6 +54,7 @@ A collection of PowerShell utility scripts organized by category.
 | [CI-CB/.../New-AcrobatAllToolsPaneFixBaseline.ps1](MECM/CI-CB/Configuration/Acrobat-AllToolsPane-Fix/New-AcrobatAllToolsPaneFixBaseline.ps1) | Temporary Adobe workaround for the Acrobat All Tools pane disappearing on Edit PDF (`FeatureLockDown\bGenCoverPagesLabelStrings = 1`). Retire after Adobe's patch. |
 | [Collections/New-HTBasedCollections.ps1](MECM/Collections/New-HTBasedCollections.ps1) | Creates HT-Enabled / HT-Disabled query collections (WQL against `SMS_G_System_PROCESSOR`) used to target the bundled spec-exec baselines by Hyper-Threading state. |
 | [Collections/New-OSClassCollections.ps1](MECM/Collections/New-OSClassCollections.ps1) | Creates "Devices: Windows Clients" (ProductType 1) + "Devices: Windows Servers" (ProductType 2/3) query collections; deploy targets for per-OS-class baselines. |
+| [Collections/New-SpecExecTargetCollections.ps1](MECM/Collections/New-SpecExecTargetCollections.ps1) | Creates the 12 "SpecExec: ..." query collections -- {Workstations, Servers, Hyper-V Hosts} x {Intel, AMD} x {HT Enabled, HT Disabled} -- that map 1:1 to the `Registry/New-SpecExecBitmask.ps1` permutations. Preflights `SMS_G_System_SERVER_FEATURE` before creating anything. |
 | [Collections/New-WindowsDevicesCollection.ps1](MECM/Collections/New-WindowsDevicesCollection.ps1) | Creates "All Windows Devices" query collection; universal deploy target for fleet-wide CI/CB baselines. |
 
 ## HyperV
@@ -75,7 +76,7 @@ A collection of PowerShell utility scripts organized by category.
 |---|---|
 | [Remove-AppRegistryEntries.ps1](Registry/Remove-AppRegistryEntries.ps1) | Remove orphaned or corrupt application registry entries from Uninstall and Installer hives when the original MSI source is missing. Supports wildcard matching on DisplayName, DisplayVersion, and Publisher with AND logic. |
 | [Search-ARPEntries.ps1](Registry/Search-ARPEntries.ps1) | Read-only ARP search across HKLM Uninstall (x64 + x86) and HKCR Installer\Products. AND-matched wildcards on DisplayName, DisplayVersion, and Publisher. |
-| [New-SpecExecBitmask.ps1](Registry/New-SpecExecBitmask.ps1) | WPF helper that builds the `FeatureSettingsOverride` / `FeatureSettingsOverrideMask` bitmask from checkbox-selected mitigations (Intel bundle, BHI, AMD BTC, AMD Inception) and HT state, then writes a small remediation `.ps1`. Bit values per KB4072698 / KB4073119. |
+| [New-SpecExecBitmask.ps1](Registry/New-SpecExecBitmask.ps1) | WPF helper that builds the `FeatureSettingsOverride` / `FeatureSettingsOverrideMask` bitmask from checkbox-selected mitigations (Intel bundle, BHI, AMD BTC, AMD Inception) and HT state, then writes a small remediation `.ps1`. Bit values per KB4072698 / KB4073119. Deploy targets: `MECM/Collections/New-SpecExecTargetCollections.ps1`. |
 
 ## CodeQuality
 
