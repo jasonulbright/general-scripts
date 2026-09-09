@@ -19,6 +19,7 @@ A collection of PowerShell utility scripts organized by category.
 
 | Script | Description |
 |---|---|
+| [Applications/SpecExec/](MECM/Applications/SpecExec/) | Creates six standalone speculative-execution remediation applications: one DT each, registry detection, mandatory reboot, no custom requirements. |
 | [OSD-ComputerSetup.ps1](MECM/OSD-ComputerSetup.ps1) | WinPE GUI for MECM OSD that collects a computer role (OU) and hostname, validates the hostname (8 alphanumeric chars), checks MECM for duplicates via WMI, and sets task sequence variables. Launched via ServiceUI.exe. |
 | [OSD-ComputerSetup.bat](MECM/OSD-ComputerSetup.bat) | Wrapper batch file for OSD-ComputerSetup.ps1. Returns exit code 1630 on failure to halt the task sequence. |
 | [Export-MECMCredential.ps1](MECM/Export-MECMCredential.ps1) | Generates AES-encrypted credential files (mecm.key, mecm.user, mecm.pass) for use by OSD-ComputerSetup.ps1 during WinPE imaging. |
