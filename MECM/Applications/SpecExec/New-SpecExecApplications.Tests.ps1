@@ -54,7 +54,8 @@ BeforeAll {
     }
 
     function Get-CMApplication { [CmdletBinding()]param($Name, [switch]$DisableWildcardHandling) }
-    function Get-CMDeploymentType { [CmdletBinding()]param($ApplicationId) }
+    # Match the real cmdlet: there is NO ApplicationId parameter on Get.
+    function Get-CMDeploymentType { [CmdletBinding()]param([Parameter(Mandatory)]$ApplicationName, [switch]$DisableWildcardHandling) }
     function New-CMApplication {
         [CmdletBinding()]param($Name, $Publisher, $SoftwareVersion, $Description, $AutoInstall)
     }
@@ -65,7 +66,12 @@ BeforeAll {
         [CmdletBinding()]param($ApplicationId, $DeploymentTypeName, $ContentLocation, $InstallCommand,
             $AddDetectionClause, $DetectionClauseConnector, $InstallationBehaviorType,
             $LogonRequirementType, $UserInteractionMode, $RebootBehavior,
-            $EstimatedRuntimeMins, $MaximumRuntimeMins, $SlowNetworkDeploymentMode)
+            $EstimatedRuntimeMins, $MaximumRuntimeMins, $SlowNetworkDeploymentMode, [switch]$ContentFallback)
+    }
+    function Set-CMScriptDeploymentType {
+        [CmdletBinding(SupportsShouldProcess)]param([Parameter(Mandatory)]$ApplicationName,
+            $DeploymentTypeName, [switch]$DisableWildcardHandling, [bool]$ContentFallback,
+            $SlowNetworkDeploymentMode, $EstimatedRuntimeMins, $MaximumRuntimeMins, $RebootBehavior)
     }
 }
 
@@ -174,6 +180,7 @@ Describe 'MECM application creation contract' {
         Mock Get-CMApplication { }
         Mock Get-CMDeploymentType { [pscustomobject]@{ LocalizedDisplayName = 'Apply registry mitigation' } }
         Mock New-CMApplication { $script:nextId++; [pscustomobject]@{ CI_ID = $script:nextId } }
+        Mock Set-CMScriptDeploymentType { }
         Mock New-CMDetectionClauseRegistryKeyValue {
             [pscustomobject]@{
                 Setting = [pscustomobject]@{ LogicalName = [guid]::NewGuid().ToString() }
@@ -185,6 +192,8 @@ Describe 'MECM application creation contract' {
                 Id = $ApplicationId; Content = $ContentLocation; Command = $InstallCommand
                 Clauses = $AddDetectionClause; Connectors = $DetectionClauseConnector
                 Reboot = $RebootBehavior; Context = $InstallationBehaviorType
+                Fallback = [bool]$ContentFallback; Download = $SlowNetworkDeploymentMode
+                Estimated = $EstimatedRuntimeMins; Maximum = $MaximumRuntimeMins
             }
         }
     }
@@ -196,6 +205,14 @@ Describe 'MECM application creation contract' {
         Should -Invoke New-CMApplication -Times 6 -Exactly
         Should -Invoke Add-CMScriptDeploymentType -Times 6 -Exactly
         Should -Invoke Get-CMDeploymentType -Times 6 -Exactly
+        Should -Invoke Get-CMDeploymentType -Times 6 -Exactly -ParameterFilter {
+            $ApplicationName -like 'Speculative Execution Mitigations -*' -and $DisableWildcardHandling
+        }
+        Should -Invoke Set-CMScriptDeploymentType -Times 6 -Exactly -ParameterFilter {
+            $ContentFallback -and $SlowNetworkDeploymentMode -eq 'Download' -and
+            $EstimatedRuntimeMins -eq 15 -and $MaximumRuntimeMins -eq 20 -and
+            $RebootBehavior -eq 'ForceReboot' -and $DeploymentTypeName -eq 'Apply registry mitigation'
+        }
         Should -Invoke New-CMDetectionClauseRegistryKeyValue -Times 15 -Exactly -ParameterFilter {
             $Hive -eq 'LocalMachine' -and $ExpressionOperator -eq 'IsEquals' -and $Value
         }
@@ -204,6 +221,10 @@ Describe 'MECM application creation contract' {
             $dt = $script:capturedDts[$i]
             $dt.Reboot | Should -Be 'ForceReboot'
             $dt.Context | Should -Be 'InstallForSystem'
+            $dt.Fallback | Should -BeTrue
+            $dt.Download | Should -Be 'Download'
+            $dt.Estimated | Should -Be 15
+            $dt.Maximum | Should -Be 20
             $dt.Command | Should -Be 'PowerShell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "Install-SpecExec.ps1"'
             $dt.Clauses.Count | Should -Be $(if ($i -ge 3) { 3 } else { 2 })
             @($dt.Connectors).Count | Should -Be ($dt.Clauses.Count - 1)
@@ -222,6 +243,7 @@ Describe 'MECM application creation contract' {
         [void](Invoke-SpecExecApplicationCreation -SiteCode MCM -SiteServer cm01 -ContentRoot '\\server\share' -WhatIf)
         Should -Invoke New-CMApplication -Times 0
         Should -Invoke Add-CMScriptDeploymentType -Times 0
+        Should -Invoke Set-CMScriptDeploymentType -Times 0
         Test-Path $script:runRoot | Should -BeFalse
     }
 
@@ -258,5 +280,43 @@ Describe 'MECM application creation contract' {
         { Invoke-SpecExecApplicationCreation -SiteCode MCM -SiteServer cm01 -ContentRoot '\\server\share' } | Should -Throw '*Provider unreachable*'
         Should -Invoke New-CMApplication -Times 0
         Test-Path $script:runRoot | Should -BeFalse
+    }
+
+    It 'repairs the first app in place and creates the other five on rerun' {
+        Mock Get-CMApplication { [pscustomobject]@{ CI_ID = 40 } } -ParameterFilter { $Name -eq 'Speculative Execution Mitigations - Intel - HT Enabled - Standard' }
+        $result = @(Invoke-SpecExecApplicationCreation -SiteCode MCM -SiteServer cm01 -ContentRoot '\\server\share' -OnExisting Repair)
+        @($result | Where-Object Status -eq 'Repaired').Count | Should -Be 1
+        @($result | Where-Object Status -eq 'Created').Count | Should -Be 5
+        Should -Invoke New-CMApplication -Times 5 -Exactly
+        Should -Invoke Add-CMScriptDeploymentType -Times 5 -Exactly
+        Should -Invoke Set-CMScriptDeploymentType -Times 6 -Exactly
+        Should -Invoke Set-CMScriptDeploymentType -Times 1 -Exactly -ParameterFilter {
+            $ApplicationName -eq 'Speculative Execution Mitigations - Intel - HT Enabled - Standard' -and
+            $ContentFallback -and $SlowNetworkDeploymentMode -eq 'Download' -and
+            $EstimatedRuntimeMins -eq 15 -and $MaximumRuntimeMins -eq 20
+        }
+        Test-Path (Join-Path $script:runRoot 'SpecExec\Intel-HT-On-Standard') | Should -BeFalse
+    }
+
+    It 'does not mutate existing applications or files for repair WhatIf' {
+        Mock Get-CMApplication { [pscustomobject]@{ CI_ID = 40 } }
+        $result = @(Invoke-SpecExecApplicationCreation -SiteCode MCM -SiteServer cm01 -ContentRoot '\\server\share' -OnExisting Repair -WhatIf)
+        @($result | Where-Object Status -eq 'WhatIf').Count | Should -Be 6
+        Should -Invoke Set-CMScriptDeploymentType -Times 0
+        Should -Invoke New-CMApplication -Times 0
+        Test-Path $script:runRoot | Should -BeFalse
+    }
+
+    It 'refuses to repair an unexpected deployment type' {
+        Mock Get-CMApplication { [pscustomobject]@{ CI_ID = 40 } }
+        Mock Get-CMDeploymentType { [pscustomobject]@{ LocalizedDisplayName = 'User-authored DT' } }
+        { Invoke-SpecExecApplicationCreation -SiteCode MCM -SiteServer cm01 -ContentRoot '\\server\share' -OnExisting Repair } | Should -Throw '*unexpected DT name*'
+        Should -Invoke Set-CMScriptDeploymentType -Times 0
+    }
+
+    It 'distinguishes a post-creation verification failure from DT creation failure' {
+        Mock Get-CMDeploymentType { throw 'Verification read failed' }
+        { Invoke-SpecExecApplicationCreation -SiteCode MCM -SiteServer cm01 -ContentRoot '\\server\share' } | Should -Throw '*DT verification failed*Verification read failed*'
+        Should -Invoke Add-CMScriptDeploymentType -Times 1 -Exactly
     }
 }
