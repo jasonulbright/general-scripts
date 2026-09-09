@@ -36,6 +36,11 @@ Create from **Windows PowerShell 5.1** on a machine with the ConfigMgr console:
 # Remove -WhatIf to create the six applications and their source content.
 ```
 
+If an earlier run created the first app and then failed, rerun with the same
+parameters plus `-OnExisting Repair`. This fixes the existing DT's content,
+reboot and runtime options, then creates the missing apps. It does not replace
+source files, detection rules or deployments. `-WhatIf` can preview this too.
+
 `SiteServer` is the SMS Provider server. The UNC root must already exist and
 be readable by the site server; the operator needs source-folder write access
 and application-management rights. Distribute content and create the Required
@@ -50,6 +55,10 @@ deployments yourself after reviewing the applications.
   AND, and sets **ForceReboot** (ConfigMgr client forces a mandatory restart).
   Restart timing remains subject to deployment/client settings and maintenance
   windows. The installer does not call Restart-Computer or shut down VMs.
+- Content fallback is enabled, with **Download content from distribution point
+  and run locally** for neighbor/default boundary groups. Estimated runtime is
+  **15 minutes**, maximum **20 minutes**. Network reachability and DP content
+  distribution still need to be configured for remote/private-access clients.
 - Installers write the exact profile values in the native registry view, verify
   their types/values, return `3010` on success and `1` on failure. Existing
   override bits are replaced, matching the tested GUI. A partial failure may
@@ -57,6 +66,8 @@ deployments yourself after reviewing the applications.
 - No uninstall command: removing security settings is not an uninstall operation.
 - Existing apps cause a preflight failure. `-OnExisting Skip` leaves existing
   single-DT apps unchanged; it does not repair or validate their configuration.
+  `-OnExisting Repair` updates only the download/reboot/runtime options on the
+  expected `Apply registry mitigation` DT; it preserves other settings.
   Incomplete/multi-DT apps require console review. Existing differing source
   content is never overwritten; use a new `-ContentVersion` for changed content.
 - If creation fails partway, already-created apps/content remain. The error names
