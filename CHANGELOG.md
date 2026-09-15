@@ -2,6 +2,11 @@
 
 All notable changes to General Scripts are documented in this file.
 
+## [1.0.13] - 2026-09-15
+
+### Added
+- Add a drag-and-drop tool that signs Excel VBA macros with your code-signing certificate
+
 ## [1.0.12] - 2026-06-18
 
 ### Added

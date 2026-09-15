@@ -115,12 +115,19 @@ full guarantee and per-script details.
 | [Get-MspMetadataNative.ps1](native-installers/Get-MspMetadataNative.ps1) | Read MSP Summary Information + `MsiPatchMetadata` table via `WindowsInstaller.Installer` COM. |
 | [Get-WixBurnMetadata.ps1](native-installers/Get-WixBurnMetadata.ps1) | Read the WiX Burn `.wixburn` PE section's `BURN_SECTION` header to extract the BundleId GUID. |
 
+## Office
+
+| Script | Description |
+|---|---|
+| [Sign-ExcelMacros/](Office/Sign-ExcelMacros/) | WPF drag-and-drop tool that signs the VBA projects in Excel macro files (.xlsm, .xlsb, .xltm, .xlam, .xls, .xlt, .xla) with a code-signing certificate from the user's store. Recursive folder scan skips files without macros. Prompts to import a .pfx when no signing certificate exists, or to choose when several do. Requires the Microsoft Office SIP. |
+
 ## Prerequisites
 
 | Requirement | Details |
 |---|---|
 | **PowerShell** | 5.1+ |
 | **MECM scripts** | ConfigurationManager module (MECM console installed) where noted |
+| **Office/Sign-ExcelMacros** | Microsoft Office Subject Interface Packages (SIP) registered for the PowerShell bitness |
 
 ## License
 
