@@ -313,7 +313,7 @@ function Invoke-PolicyTriggers {
         $client.TriggerSchedule('{00000000-0000-0000-0000-000000000021}') | Out-Null
         Write-Log "  COM trigger: Machine Policy Retrieval sent."
     }
-    catch { }
+    catch { <# The COM trigger of the machine policy retrieval is an extra attempt after the WMI triggers, and failure does not change the result. #> $null = $_ }
 
     Write-Log "Policy triggers complete."
 }

@@ -66,6 +66,7 @@ try {
         }
     } catch {
         # MsiPatchMetadata is optional in some patches; leave block empty.
+        $null = $_
     }
 
     [PSCustomObject]@{
