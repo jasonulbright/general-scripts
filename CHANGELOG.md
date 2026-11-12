@@ -2,6 +2,11 @@
 
 All notable changes to General Scripts are documented in this file.
 
+## [1.0.15] - 2026-11-12
+
+### Added
+- **MECM/Collections/New-ScannerCollections.ps1** -- `-Discover` lists distinct scanner device names in hardware inventory (`SMS_G_System_PNP_DEVICE_DRIVER`) with device counts and prints a paste-ready `$ScannerModels` table; the default mode creates a "Scanners: All" parent and one name-pattern query collection per table entry. Skips existing collections, daily full refresh without incremental, optional `-UseClassGuid` for the Imaging class once Class Guid is inventoried.
+
 ## [1.0.14] - 2026-11-12
 
 ### Added

@@ -121,6 +121,10 @@ Notes:
 - These queries do not exclude webcams or check that a device is currently present. When that matters, use the Run Script.
 - If a query errors on a column name, that column is not exposed in your site version. Remove that clause, or use the Run Script.
 
+## Collections
+
+[`../Collections/New-ScannerCollections.ps1`](../Collections/New-ScannerCollections.ps1) builds a "Scanners: All" collection and one collection per model from hardware inventory. It works with the default *PNP Device Driver* properties (Name, Device ID). Enabling **Class Guid** on that class in client settings makes it, and cached CMPivot results, cover every brand.
+
 ## References
 
 Microsoft Learn:
