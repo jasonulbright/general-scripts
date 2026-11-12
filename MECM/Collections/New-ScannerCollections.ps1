@@ -120,12 +120,11 @@ $ErrorActionPreference = 'Stop'
 # ============================================================================
 # Scanner models: collection name = WQL LIKE pattern matched against the device
 # name. % = any run of characters, _ = any single character.
-# Replace these two examples with the block printed by -Discover.
+# Empty on purpose. Fill it with the block printed by -Discover, e.g.
+#     'Scanners: <Model>' = '<device name pattern>%'
 # ============================================================================
 
 $ScannerModels = [ordered]@{
-    'Scanners: Fujitsu fi-6130' = 'fi-6130%'
-    'Scanners: Canon CR-190'    = '%CR-190%'
 }
 
 # ============================================================================
@@ -278,7 +277,7 @@ try {
     # ========================================================================
 
     if ($ScannerModels.Count -eq 0) {
-        Write-Host "`$ScannerModels is empty; only the parent collection will be created." -ForegroundColor Yellow
+        Write-Host "`$ScannerModels is empty; only the parent collection will be created. Run -Discover to get the model list." -ForegroundColor Yellow
     }
 
     if (-not (Get-CMDeviceCollection -Name $LimitingCollectionName)) {
