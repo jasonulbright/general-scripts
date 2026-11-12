@@ -1,29 +1,36 @@
 <#
 .SYNOPSIS
-    Discovers the scanner models present in hardware inventory and creates one
-    MECM device collection per model, under a parent "Scanners: All" collection.
+    Discovers the scanner models present in hardware inventory and walks you
+    through creating one MECM device collection per model.
 
 .DESCRIPTION
-    Two modes, same script:
+    Guided and interactive. Nothing to edit or paste:
 
-      -Discover   Read-only. Lists every distinct scanner device name found in
-                  SMS_G_System_PNP_DEVICE_DRIVER with a device count, and
-                  prints a ready-to-paste $ScannerModels block. Creates nothing.
+      1. Queries SMS_G_System_PNP_DEVICE_DRIVER for scanner devices and groups
+         them by device name, with a count of devices for each.
+      2. Asks whether to create the parent collection ("Scanners: All").
+      3. For each discovered model, shows the name and device count and asks:
+           [Y]es   create a collection for this model
+           [N]o    skip it (default, just press Enter)
+           [E]dit  change the collection name and/or the name pattern first,
+                   e.g. widen a pattern so one collection covers the variants
+                   of a model
+           [A]ll   yes to this and every remaining model
+           [Q]uit  stop asking; keep what was already chosen
+         Models whose collection already exists are shown and not asked about.
+      4. Shows the plan and asks once more before creating anything.
 
-      (default)   Creates the parent collection, then one query collection per
-                  entry in the $ScannerModels table at the top of this script.
-                  Collections that already exist are skipped, never modified,
-                  so the script is safe to re-run after adding models.
+    Existing collections are never modified, so the script is safe to re-run
+    when new models show up in inventory.
 
-    Workflow:
-      1. Run with -Discover.
-      2. Paste the printed block over $ScannerModels below. Merge variants of
-         one model into one pattern (fi-6130, fi-6130dj, fi-6130Z -> 'fi-6130%')
-         and delete anything that is not a scanner.
-      3. Run without -Discover.
+    Switches for unattended use:
+      -Discover   List models and counts, create nothing. Output objects can
+                  be piped to Export-Csv.
+      -All        Create the parent and a collection for every discovered
+                  model without prompting.
 
-    What counts as a scanner (the parent collection and -Discover use the same
-    filter, so what you discover is what the collection will contain):
+    What counts as a scanner (discovery and the parent collection use the same
+    filter, so what you are shown is what the parent will contain):
 
       Default        Name / USB vendor ID match, using only the properties
                      enabled by default for "PNP Device Driver": Name, DeviceID.
@@ -38,8 +45,9 @@
                      and one inventory cycle to have run since. Without that
                      the query fails or returns nothing.
 
-    Model collections are limited to the parent collection and match on device
-    name only:  Name like "<pattern>".
+    Model collections match on device name only: the exact discovered name,
+    or Name like "<pattern>" if you chose Edit and typed one. They are limited to the parent collection, or to -LimitingCollectionName if you
+    decline the parent.
 
     Refresh: scheduled daily full evaluation, no incremental updates. Queries
     built on hardware inventory only gain or lose members during a scheduled
@@ -58,6 +66,9 @@
 .PARAMETER AllCollectionName
     Name of the parent collection. Default: "Scanners: All".
 
+.PARAMETER CollectionPrefix
+    Prefix for model collection names. Default: "Scanners: ".
+
 .PARAMETER UseClassGuid
     Identify scanners by the Imaging device class GUID instead of name and USB
     vendor ID. See the requirement in the description.
@@ -65,18 +76,20 @@
 .PARAMETER Discover
     List scanner models found in inventory and exit. Creates nothing.
 
+.PARAMETER All
+    Create the parent and every discovered model collection without prompting.
+
 .EXAMPLE
-    .\New-ScannerCollections.ps1 -SiteCode MCM -SiteServer CM01.contoso.local -Discover
+    .\New-ScannerCollections.ps1 -SiteCode MCM -SiteServer CM01.contoso.local
+
+    Guided run: discover, answer per model, confirm, create.
 
 .EXAMPLE
     .\New-ScannerCollections.ps1 -SiteCode MCM -SiteServer CM01.contoso.local -Discover |
         Export-Csv .\scanner-models.csv -NoTypeInformation
 
 .EXAMPLE
-    .\New-ScannerCollections.ps1 -SiteCode MCM -SiteServer CM01.contoso.local
-
-.EXAMPLE
-    .\New-ScannerCollections.ps1 -SiteCode MCM -SiteServer CM01.contoso.local -UseClassGuid -LimitingCollectionName "All Windows Devices"
+    .\New-ScannerCollections.ps1 -SiteCode MCM -SiteServer CM01.contoso.local -All -UseClassGuid
 
 .NOTES
     Inventory is a snapshot: a scanner that was unplugged or powered off when
@@ -84,7 +97,7 @@
 
     USB vendor IDs are from the public USB-IF list (04C5 Fujitsu, 1083 Canon
     Electronics). 04C5 also appears on Fujitsu-built PCs; if you have those,
-    expect non-scanner names in -Discover and trim them.
+    expect non-scanner names in the list and answer No to them.
 
     References (Microsoft Learn):
       New-CMDeviceCollection
@@ -110,22 +123,18 @@ param(
 
     [string]$AllCollectionName = 'Scanners: All',
 
+    [string]$CollectionPrefix = 'Scanners: ',
+
     [switch]$UseClassGuid,
 
-    [switch]$Discover
+    [switch]$Discover,
+
+    [switch]$All
 )
 
 $ErrorActionPreference = 'Stop'
 
-# ============================================================================
-# Scanner models: collection name = WQL LIKE pattern matched against the device
-# name. % = any run of characters, _ = any single character.
-# Empty on purpose. Fill it with the block printed by -Discover, e.g.
-#     'Scanners: <Model>' = '<device name pattern>%'
-# ============================================================================
-
-$ScannerModels = [ordered]@{
-}
+if ($Discover -and $All) { throw 'Use either -Discover or -All, not both.' }
 
 # ============================================================================
 # What identifies a scanner when -UseClassGuid is NOT set.
@@ -177,10 +186,27 @@ $AllQuery = "$CollectionSelect`r`nWHERE $ScannerFilter"
 
 $DiscoverQuery = "SELECT $PnpClass.Name, $PnpClass.DeviceID, $PnpClass.ResourceID FROM $PnpClass WHERE $ScannerFilter"
 
-function ConvertTo-WqlLiteral {
-    # Makes a device name safe inside a double-quoted WQL string.
+# ============================================================================
+# Helpers
+# ============================================================================
+
+function ConvertTo-WqlString {
+    # Makes text safe inside a double-quoted WQL string.
     param([string]$Text)
     return $Text.Replace('\', '\\').Replace('"', '\"')
+}
+
+function Read-Choice {
+    # Asks until one of the allowed single letters is entered. Enter = default.
+    param([string]$Prompt, [string[]]$Allowed, [string]$Default)
+    while ($true) {
+        $answer = [string](Read-Host -Prompt $Prompt)
+        $answer = $answer.Trim().ToUpper()
+        if ($answer -eq '') { return $Default }
+        $letter = $answer.Substring(0, 1)
+        if ($Allowed -contains $letter) { return $letter }
+        Write-Host ("  Please answer with one of: {0}" -f ($Allowed -join ', ')) -ForegroundColor Yellow
+    }
 }
 
 # ============================================================================
@@ -211,92 +237,182 @@ $failed = 0
 
 try {
     # ========================================================================
-    # Discover mode
+    # 1. Discover
     # ========================================================================
 
-    if ($Discover) {
-        Write-Host "Querying hardware inventory ($FilterDescription)..."
+    Write-Host "Querying hardware inventory ($FilterDescription)..."
 
-        try {
-            $found = @(Invoke-CMWmiQuery -Query $DiscoverQuery -Option Fast)
+    try {
+        $found = @(Invoke-CMWmiQuery -Query $DiscoverQuery -Option Fast)
+    }
+    catch {
+        if ($UseClassGuid) {
+            Write-Host "Query failed. -UseClassGuid needs the 'Class Guid' property enabled on PNP Device Driver (Win32_PnpEntity) in hardware inventory." -ForegroundColor Red
         }
-        catch {
-            if ($UseClassGuid) {
-                Write-Host "Query failed. -UseClassGuid needs the 'Class Guid' property enabled on PNP Device Driver (Win32_PnpEntity) in hardware inventory." -ForegroundColor Red
-            }
-            throw
+        throw
+    }
+
+    $found = @($found | Where-Object { -not [string]::IsNullOrEmpty(([string]$_.Name).Trim()) })
+
+    if ($found.Count -eq 0) {
+        Write-Host "No matching devices in inventory. Nothing to create." -ForegroundColor Yellow
+        if ($UseClassGuid) {
+            Write-Host "If 'Class Guid' was only just enabled, wait for a hardware inventory cycle."
         }
-
-        if ($found.Count -eq 0) {
-            Write-Host "No matching devices in inventory." -ForegroundColor Yellow
-            if ($UseClassGuid) {
-                Write-Host "If 'Class Guid' was only just enabled, wait for a hardware inventory cycle."
-            }
-            return
-        }
-
-        $models = @(
-            $found |
-                Where-Object { -not [string]::IsNullOrEmpty([string]$_.Name) } |
-                Group-Object -Property { ([string]$_.Name).Trim() } |
-                ForEach-Object {
-                    $sampleId = [string]($_.Group | Select-Object -First 1).DeviceID
-                    $vidPid = ''
-                    if ($sampleId -match 'VID_([0-9A-Fa-f]{4})&PID_([0-9A-Fa-f]{4})') {
-                        $vidPid = ('{0}:{1}' -f $Matches[1], $Matches[2]).ToUpper()
-                    }
-                    [pscustomobject]@{
-                        Name    = $_.Name
-                        Devices = @($_.Group | ForEach-Object { $_.ResourceID } | Sort-Object -Unique).Count
-                        VidPid  = $vidPid
-                    }
-                } |
-                Sort-Object -Property @{ Expression = 'Devices'; Descending = $true }, Name
-        )
-
-        Write-Host ""
-        Write-Host "=== Paste over `$ScannerModels, then merge variants and remove non-scanners ===" -ForegroundColor Cyan
-        Write-Host '$ScannerModels = [ordered]@{'
-        foreach ($model in $models) {
-            $key   = ('Scanners: ' + $model.Name).Replace("'", "''")
-            $value = (ConvertTo-WqlLiteral $model.Name).Replace("'", "''")
-            Write-Host ("    '{0}' = '{1}'    # {2} device(s)" -f $key, $value, $model.Devices)
-        }
-        Write-Host '}'
-        Write-Host ""
-        Write-Host ("{0} distinct name(s) across {1} inventory row(s)." -f $models.Count, $found.Count)
-        Write-Host ""
-
-        # Objects go to the pipeline so the list can be exported or sorted.
-        $models
         return
     }
 
-    # ========================================================================
-    # Create mode
-    # ========================================================================
+    $totalDevices = @($found | ForEach-Object { $_.ResourceID } | Sort-Object -Unique).Count
 
-    if ($ScannerModels.Count -eq 0) {
-        Write-Host "`$ScannerModels is empty; only the parent collection will be created. Run -Discover to get the model list." -ForegroundColor Yellow
+    $models = @(
+        $found |
+            Group-Object -Property { ([string]$_.Name).Trim() } |
+            ForEach-Object {
+                $sampleId = [string]($_.Group | Select-Object -First 1).DeviceID
+                $vidPid = ''
+                if ($sampleId -match 'VID_([0-9A-Fa-f]{4})&PID_([0-9A-Fa-f]{4})') {
+                    $vidPid = ('{0}:{1}' -f $Matches[1], $Matches[2]).ToUpper()
+                }
+                [pscustomobject]@{
+                    Name    = $_.Name
+                    Devices = @($_.Group | ForEach-Object { $_.ResourceID } | Sort-Object -Unique).Count
+                    VidPid  = $vidPid
+                }
+            } |
+            Sort-Object -Property @{ Expression = 'Devices'; Descending = $true }, Name
+    )
+
+    Write-Host ("Found {0} model name(s) on {1} device(s)." -f $models.Count, $totalDevices) -ForegroundColor Green
+
+    if ($Discover) {
+        # Read-only: objects go to the pipeline so the list can be exported.
+        $models
+        return
     }
 
     if (-not (Get-CMDeviceCollection -Name $LimitingCollectionName)) {
         throw "Limiting collection '$LimitingCollectionName' not found."
     }
 
-    $dailySchedule = New-CMSchedule -RecurInterval Days -RecurCount 1
+    # ========================================================================
+    # 2. Choose
+    # ========================================================================
 
-    $created = New-Object System.Collections.ArrayList
-    $skipped = New-Object System.Collections.ArrayList
-    $parentCreated = $false
+    $plan = New-Object System.Collections.ArrayList     # model collections to create
+    $existingCount = 0
 
-    # ---- Parent collection --------------------------------------------------
+    # ---- Parent -------------------------------------------------------------
 
-    if (Get-CMDeviceCollection -Name $AllCollectionName) {
-        Write-Host "Exists, skipped: $AllCollectionName" -ForegroundColor Yellow
-        [void]$skipped.Add($AllCollectionName)
+    $parentExists = [bool](Get-CMDeviceCollection -Name $AllCollectionName)
+    $createParent = $false
+
+    Write-Host ""
+    if ($parentExists) {
+        Write-Host "Parent collection '$AllCollectionName' already exists; model collections will be limited to it."
+        $existingCount++
+    }
+    elseif ($All) {
+        $createParent = $true
     }
     else {
+        Write-Host "Parent collection '$AllCollectionName' would hold all $totalDevices device(s) with a scanner."
+        $answer = Read-Choice -Prompt "Create it? [Y]es / [N]o (default Y)" -Allowed @('Y', 'N') -Default 'Y'
+        $createParent = ($answer -eq 'Y')
+        if (-not $createParent) {
+            Write-Host "  Model collections will be limited to '$LimitingCollectionName' instead."
+        }
+    }
+
+    $modelLimit = $LimitingCollectionName
+    if ($parentExists -or $createParent) { $modelLimit = $AllCollectionName }
+
+    # ---- Models -------------------------------------------------------------
+
+    $yesToAll = [bool]$All
+    $index = 0
+
+    foreach ($model in $models) {
+        $index++
+        $collectionName = $CollectionPrefix + $model.Name
+        $operator       = '='      # exact device name unless edited
+        $pattern        = ConvertTo-WqlString $model.Name
+
+        Write-Host ""
+        Write-Host ("[{0}/{1}] {2}   {3} device(s)   {4}" -f $index, $models.Count, $model.Name, $model.Devices, $model.VidPid) -ForegroundColor Cyan
+
+        if (Get-CMDeviceCollection -Name $collectionName) {
+            Write-Host "  Collection '$collectionName' already exists; skipped."
+            $existingCount++
+            continue
+        }
+
+        $answer = 'Y'
+        if (-not $yesToAll) {
+            $answer = Read-Choice -Prompt "  Create '$collectionName'? [Y]es / [N]o / [E]dit / [A]ll / [Q]uit (default N)" -Allowed @('Y', 'N', 'E', 'A', 'Q') -Default 'N'
+        }
+
+        if ($answer -eq 'Q') { Write-Host "  Stopped asking."; break }
+        if ($answer -eq 'N') { continue }
+        if ($answer -eq 'A') { $yesToAll = $true }
+
+        if ($answer -eq 'E') {
+            $typedName = ([string](Read-Host -Prompt "  Collection name (Enter keeps '$collectionName')")).Trim()
+            if ($typedName -ne '') { $collectionName = $typedName }
+
+            Write-Host "  Name pattern: % matches any run of characters, so <model>% covers every variant of a model."
+            $typedPattern = ([string](Read-Host -Prompt "  Pattern (Enter keeps the exact name)")).Trim()
+            if ($typedPattern -ne '') {
+                $operator = 'like'
+                $pattern  = ConvertTo-WqlString $typedPattern
+            }
+
+            if (Get-CMDeviceCollection -Name $collectionName) {
+                Write-Host "  Collection '$collectionName' already exists; skipped." -ForegroundColor Yellow
+                $existingCount++
+                continue
+            }
+        }
+
+        if (@($plan | Where-Object { $_.Name -eq $collectionName }).Count -gt 0) {
+            Write-Host "  '$collectionName' is already in the plan; skipped." -ForegroundColor Yellow
+            continue
+        }
+
+        [void]$plan.Add([pscustomobject]@{ Name = $collectionName; Operator = $operator; Pattern = $pattern })
+        Write-Host "  Added to plan." -ForegroundColor Green
+    }
+
+    # ========================================================================
+    # 3. Confirm
+    # ========================================================================
+
+    Write-Host ""
+    Write-Host "=== Plan ===" -ForegroundColor Cyan
+    if ($createParent) { Write-Host ("  {0}   (parent, limited to '{1}')" -f $AllCollectionName, $LimitingCollectionName) }
+    foreach ($item in $plan) { Write-Host ("  {0}   (device name {1} `"{2}`", limited to '{3}')" -f $item.Name, $item.Operator, $item.Pattern, $modelLimit) }
+
+    if ((-not $createParent) -and ($plan.Count -eq 0)) {
+        Write-Host "  Nothing selected. No changes made."
+        return
+    }
+
+    if (-not $All) {
+        $go = Read-Choice -Prompt "Create these collections now? [Y]es / [N]o (default N)" -Allowed @('Y', 'N') -Default 'N'
+        if ($go -ne 'Y') {
+            Write-Host "Cancelled. No changes made."
+            return
+        }
+    }
+
+    # ========================================================================
+    # 4. Create
+    # ========================================================================
+
+    $dailySchedule = New-CMSchedule -RecurInterval Days -RecurCount 1
+    $created = New-Object System.Collections.ArrayList
+
+    Write-Host ""
+    if ($createParent) {
         Write-Host "Creating collection: $AllCollectionName"
 
         New-CMDeviceCollection `
@@ -313,60 +429,43 @@ try {
 
         Write-Host "  Created and query rule attached." -ForegroundColor Green
         [void]$created.Add($AllCollectionName)
-        $parentCreated = $true
     }
 
-    # ---- One collection per model -------------------------------------------
-
-    foreach ($entry in $ScannerModels.GetEnumerator()) {
-        $collectionName = [string]$entry.Key
-        $namePattern    = [string]$entry.Value
-
-        if ([string]::IsNullOrEmpty($collectionName.Trim()) -or [string]::IsNullOrEmpty($namePattern.Trim())) {
-            Write-Host "Skipped an entry with an empty name or pattern." -ForegroundColor Yellow
-            continue
-        }
-
+    foreach ($item in $plan) {
         try {
-            if (Get-CMDeviceCollection -Name $collectionName) {
-                Write-Host "Exists, skipped: $collectionName" -ForegroundColor Yellow
-                [void]$skipped.Add($collectionName)
-                continue
-            }
+            Write-Host "Creating collection: $($item.Name)"
 
-            Write-Host "Creating collection: $collectionName"
-
-            $modelQuery = '{0}{1}WHERE {2}.Name like "{3}"' -f $CollectionSelect, "`r`n", $PnpClass, $namePattern
+            $modelQuery = '{0}{1}WHERE {2}.Name {3} "{4}"' -f $CollectionSelect, "`r`n", $PnpClass, $item.Operator, $item.Pattern
 
             New-CMDeviceCollection `
-                -Name $collectionName `
-                -LimitingCollectionName $AllCollectionName `
+                -Name $item.Name `
+                -LimitingCollectionName $modelLimit `
                 -RefreshType Periodic `
                 -RefreshSchedule $dailySchedule `
-                -Comment "Devices with a PnP device named like '$namePattern'. Auto-populated via WQL against $PnpClass." | Out-Null
+                -Comment "Devices with a PnP device whose name $($item.Operator) '$($item.Pattern)'. Auto-populated via WQL against $PnpClass." | Out-Null
 
             Add-CMDeviceCollectionQueryMembershipRule `
-                -CollectionName $collectionName `
+                -CollectionName $item.Name `
                 -QueryExpression $modelQuery `
-                -RuleName "Device name like $namePattern"
+                -RuleName 'Scanner device name'
 
             Write-Host "  Created and query rule attached." -ForegroundColor Green
-            [void]$created.Add($collectionName)
+            [void]$created.Add($item.Name)
         }
         catch {
             $failed++
-            Write-Host "  FAILED: $collectionName -- $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "  FAILED: $($item.Name) -- $($_.Exception.Message)" -ForegroundColor Red
         }
     }
 
     # ---- Trigger initial population -----------------------------------------
-    # Updating a new parent also evaluates the collections it limits. When the
-    # parent already existed, update the newly created model collections.
+    # Updating a new parent also evaluates the collections it limits. When no
+    # parent was created, update the new model collections directly.
 
     Write-Host ""
     if ($created.Count -gt 0) {
         Write-Host "Triggering initial collection evaluation..."
-        if ($parentCreated) {
+        if ($createParent) {
             Invoke-CMCollectionUpdate -Name $AllCollectionName
         }
         else {
@@ -374,17 +473,13 @@ try {
         }
         Write-Host "  Evaluation queued. Membership populates within a few minutes." -ForegroundColor Green
     }
-    else {
-        Write-Host "Nothing new to create."
-    }
 
     Write-Host ""
     Write-Host "=== Summary ===" -ForegroundColor Cyan
-    Write-Host "Limiting collection: $LimitingCollectionName"
-    Write-Host "Parent collection:   $AllCollectionName"
     Write-Host "Scanner filter:      $FilterDescription"
+    Write-Host "Models discovered:   $($models.Count)"
     Write-Host "Created:             $($created.Count)"
-    Write-Host "Already existed:     $($skipped.Count)"
+    Write-Host "Already existed:     $existingCount"
     Write-Host "Failed:              $failed"
     Write-Host "Refresh:             Daily full (no incremental)"
     Write-Host ""

@@ -17,7 +17,7 @@ Run the scripts directly from a workstation with the MECM admin console installe
 | [`New-SpecExecTargetCollections.ps1`](New-SpecExecTargetCollections.ps1) | 12 "SpecExec: ..." collections -- {Workstations, Servers, Hyper-V Hosts} x {Intel, AMD} x {HT Enabled, HT Disabled} | Deployment targets for `Registry/New-SpecExecBitmask.ps1` output |
 | [`New-OSClassCollections.ps1`](New-OSClassCollections.ps1) | "Devices: Windows Clients" (ProductType 1) + "Devices: Windows Servers" (ProductType 2/3) | `CI-CB/Configuration/DeliveryOptimization-DownloadMode/` |
 | [`New-WindowsDevicesCollection.ps1`](New-WindowsDevicesCollection.ps1) | "All Windows Devices" | Fleet-wide `CI-CB/Hardening/` + `CI-CB/Compliance/` baselines |
-| [`New-ScannerCollections.ps1`](New-ScannerCollections.ps1) | "Scanners: All" parent + one collection per scanner model from the `$ScannerModels` table. `-Discover` lists the models found in inventory and prints the table to paste in. | Scanner catalog; pairs with `../Scanner-Inventory/` |
+| [`New-ScannerCollections.ps1`](New-ScannerCollections.ps1) | "Scanners: All" parent + one collection per scanner model. Guided: discovers models in hardware inventory, shows each with its device count, and asks yes / no / edit per model before creating anything. `-Discover` lists only; `-All` runs unattended. | Scanner catalog; pairs with `../Scanner-Inventory/` |
 
 ## Convention
 
