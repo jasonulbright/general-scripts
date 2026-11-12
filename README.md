@@ -57,6 +57,7 @@ A collection of PowerShell utility scripts organized by category.
 | [Collections/New-OSClassCollections.ps1](MECM/Collections/New-OSClassCollections.ps1) | Creates "Devices: Windows Clients" (ProductType 1) + "Devices: Windows Servers" (ProductType 2/3) query collections; deploy targets for per-OS-class baselines. |
 | [Collections/New-SpecExecTargetCollections.ps1](MECM/Collections/New-SpecExecTargetCollections.ps1) | Creates the 12 "SpecExec: ..." query collections -- {Workstations, Servers, Hyper-V Hosts} x {Intel, AMD} x {HT Enabled, HT Disabled} -- that map 1:1 to the `Registry/New-SpecExecBitmask.ps1` permutations. Preflights `SMS_G_System_SERVER_FEATURE` before creating anything. |
 | [Collections/New-WindowsDevicesCollection.ps1](MECM/Collections/New-WindowsDevicesCollection.ps1) | Creates "All Windows Devices" query collection; universal deploy target for fleet-wide CI/CB baselines. |
+| [Scanner-Inventory/](MECM/Scanner-Inventory/) | Catalogs connected scanners (Fujitsu fi-series / ScanSnap, Canon, Lexmark, Ricoh; other brands tagged `Other`). `Get-ConnectedScanners.ps1` for ConfigMgr Run Scripts returns compact JSON per device from `Win32_PnPEntity` (Imaging class plus driverless devices of the four brands), stays under the 4 KB output limit, and exits 1 with `ERROR:` text on failure. README carries matching CMPivot queries. |
 
 ## HyperV
 

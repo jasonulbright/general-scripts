@@ -2,6 +2,11 @@
 
 All notable changes to General Scripts are documented in this file.
 
+## [1.0.14] - 2026-11-12
+
+### Added
+- **MECM/Scanner-Inventory/** -- `Get-ConnectedScanners.ps1` (ConfigMgr Run Scripts) inventories present scanners from `Win32_PnPEntity`: every Imaging-class device plus driverless (problem code 28) Fujitsu / Canon / Lexmark / Ricoh devices, tagged by vendor, emitted as compact JSON capped below the 4 KB Run Scripts limit. README adds CMPivot queries against `PNPDEVICEDRIVER` and the known blind spots (powered-off scanners, network TWAIN, offline clients).
+
 ## [1.0.13] - 2026-09-15
 
 ### Added
