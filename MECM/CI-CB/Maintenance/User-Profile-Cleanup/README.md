@@ -137,7 +137,7 @@ The discovery and remediation scripts contain the engine text (`UserProfileClean
 | `New-UserProfileCleanupPackage.ps1` | Asks for the day count, stages the content, creates the package, program, optional distribution and recurring deployment |
 | `Invoke-UserProfileCleanup.ps1` | The runner for a package program, a task sequence step or a manual run. Exit codes 0, 1, 2. |
 | `UserProfileCleanup.Engine.ps1` | The cleanup logic. Functions only. `Get-UserProfileCleanupItem` reads, `Remove-UserProfileCleanupItem` removes (supports `-WhatIf`). |
-| `*.Tests.ps1` | Pester tests, one file for each script above. They create real local test users and profiles. Run on a lab client. |
+| `UserProfileCleanup.Engine.Tests.ps1`, `New-UserProfileCleanupBaseline.Tests.ps1`, `New-UserProfileCleanupPackage.Tests.ps1`, `Invoke-UserProfileCleanup.Tests.ps1` | Pester tests, one file for each script above. They create real local test users and profiles. Run each file on a lab client in its own PowerShell process. |
 | `metadata.psd1` | Description of the control, for the other builders in this folder tree |
 
 ## Failed creation
