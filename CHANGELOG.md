@@ -7,6 +7,16 @@ All notable changes to General Scripts are documented in this file.
 ### Added
 - **MECM/CI-CB/Maintenance/User-Profile-Cleanup/** -- profile cleanup for ConfigMgr in three forms that share one engine: (1) a CI + baseline builder, (2) a package + program builder for a recurring deployment, (3) the same package as a task sequence Run Command Line step (`Invoke-UserProfileCleanup.ps1` runner, exit codes 0/1/2, starts 64-bit PowerShell from a 32-bit program). Each builder asks for the day count (30, 60, 90, ...) and puts it in the object names. Removes profiles unused for N days (folder, `NTUSER.DAT` hive, `ProfileList` registration) through the profile service, plus orphaned `ProfileList` keys (including `.bak`), orphaned `ProfileGuid` keys and orphaned profile folders. Profile age comes from the profile-service registry timestamps (Microsoft Learn method); loaded profiles, the built-in Administrator, well-known accounts and non-user SIDs are never touched. Supports account include/exclude patterns, `-DetectOnly`, `-ScriptOnly` / `-StageOnly`.
 
+## [1.0.15] - 2026-11-12
+
+### Added
+- **MECM/Collections/New-ScannerCollections.ps1** -- guided scanner collection builder. Discovers distinct scanner device names in hardware inventory (`SMS_G_System_PNP_DEVICE_DRIVER`) with device counts, prompts yes / no / edit / all / quit per model, confirms the plan, then creates a "Scanners: All" parent and one query collection per chosen model. Skips existing collections, daily full refresh without incremental. `-Discover` lists only, `-All` runs unattended, optional `-UseClassGuid` for the Imaging class once Class Guid is inventoried.
+
+## [1.0.14] - 2026-11-12
+
+### Added
+- **MECM/Scanner-Inventory/** -- `Get-ConnectedScanners.ps1` (ConfigMgr Run Scripts) inventories present scanners from `Win32_PnPEntity`: every Imaging-class device plus driverless (problem code 28) Fujitsu / Canon / Lexmark / Ricoh devices, tagged by vendor, emitted as compact JSON capped below the 4 KB Run Scripts limit. README adds CMPivot queries against `PNPDEVICEDRIVER` and the known blind spots (powered-off scanners, network TWAIN, offline clients).
+
 ## [1.0.13] - 2026-09-15
 
 ### Added

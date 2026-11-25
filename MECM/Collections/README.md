@@ -17,6 +17,7 @@ Run the scripts directly from a workstation with the MECM admin console installe
 | [`New-SpecExecTargetCollections.ps1`](New-SpecExecTargetCollections.ps1) | 12 "SpecExec: ..." collections -- {Workstations, Servers, Hyper-V Hosts} x {Intel, AMD} x {HT Enabled, HT Disabled} | Deployment targets for `Registry/New-SpecExecBitmask.ps1` output |
 | [`New-OSClassCollections.ps1`](New-OSClassCollections.ps1) | "Devices: Windows Clients" (ProductType 1) + "Devices: Windows Servers" (ProductType 2/3) | `CI-CB/Configuration/DeliveryOptimization-DownloadMode/` |
 | [`New-WindowsDevicesCollection.ps1`](New-WindowsDevicesCollection.ps1) | "All Windows Devices" | Fleet-wide `CI-CB/Hardening/` + `CI-CB/Compliance/` baselines |
+| [`New-ScannerCollections.ps1`](New-ScannerCollections.ps1) | "Scanners: All" parent + one collection per scanner model. Guided: discovers models in hardware inventory, shows each with its device count, and asks yes / no / edit per model before creating anything. `-Discover` lists only; `-All` runs unattended. | Scanner catalog; pairs with `../Scanner-Inventory/` |
 
 ## Convention
 
@@ -27,4 +28,5 @@ Run the scripts directly from a workstation with the MECM admin console installe
 | Required params | `-SiteCode`, `-SiteServer` |
 | Optional params | `-LimitingCollectionName` (default sensible per script), collection name overrides |
 | Refresh type | `Both` (incremental + daily full) for hardware-inventory-driven collections; `Periodic` for static or rarely-changing definitions |
+| Refresh type exception | `New-ScannerCollections.ps1` uses `Periodic` only: it can create dozens of collections, hardware-inventory queries only change membership on a scheduled update, and Microsoft recommends staying under about 200 incremental collections |
 | Triggers `Invoke-CMCollectionUpdate` at end | Yes -- so the engineer doesn't sit waiting for the next scheduled refresh |
