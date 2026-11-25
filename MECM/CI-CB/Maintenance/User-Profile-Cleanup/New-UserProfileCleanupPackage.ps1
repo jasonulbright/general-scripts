@@ -213,14 +213,14 @@ function Write-PackageContent {
     # None. You can't pipe objects to this function.
     #
     # .OUTPUTS
-    # None.
+    # [bool] $true when this call created the wrapper, $false when it only rewrote an identical one.
     #
     # .NOTES
     # PRIVATE/INTERNAL HELPER. This function is not part of the public API surface.
     #
     # Version: 1.0.20261125.0
     [CmdletBinding()]
-    [OutputType([void])]
+    [OutputType([bool])]
     param (
         [Parameter(Mandatory = $true)]
         [string]$Folder,
@@ -237,14 +237,20 @@ function Write-PackageContent {
         $strFrom = Join-Path -Path $PSScriptRoot -ChildPath $strFileName
         $strTo = Join-Path -Path $Folder -ChildPath $strFileName
         if (-not $strFrom.Equals($strTo, [System.StringComparison]::OrdinalIgnoreCase)) {
+            if ([System.IO.File]::Exists($strTo)) {
+                [System.IO.File]::SetAttributes($strTo, [System.IO.FileAttributes]::Normal)
+            }
             [System.IO.File]::Copy($strFrom, $strTo, $true)
+            [System.IO.File]::SetAttributes($strTo, [System.IO.FileAttributes]::Normal)
         }
     }
+    $boolWrapperIsNew = -not [System.IO.File]::Exists($strWrapperPath)
     [System.IO.File]::WriteAllText($strWrapperPath, $WrapperText, (New-Object -TypeName System.Text.ASCIIEncoding))
+    return $boolWrapperIsNew
 }
 
 if ($PSCmdlet.ParameterSetName -eq 'StageOnly') {
-    Write-PackageContent -Folder $strFullSource -WrapperText $strWrapperText
+    [void](Write-PackageContent -Folder $strFullSource -WrapperText $strWrapperText)
     Write-Host ("Content staged in: {0}" -f $strFullSource)
     Write-Host ''
     Write-Host 'Command line for a package program or a task sequence Run Command Line step:'
@@ -259,6 +265,7 @@ if ($PSCmdlet.ParameterSetName -eq 'StageOnly') {
 $objOriginalLocation = Get-Location
 $boolCreatedPackage = $false
 $boolCreatingPackage = $false
+$boolWrapperCreated = $false
 $strPackageId = $null
 
 if (-not $AssumeConnected) {
@@ -285,7 +292,7 @@ try {
     if (-not $strFullSource.StartsWith('\\')) {
         Write-Warning ("The source path '{0}' is not a UNC path. The site server must be able to read it." -f $strFullSource)
     }
-    Write-PackageContent -Folder $strFullSource -WrapperText $strWrapperText
+    $boolWrapperCreated = Write-PackageContent -Folder $strFullSource -WrapperText $strWrapperText
     Write-Host ("Content staged in: {0}" -f $strFullSource)
 
     $strModeText = 'Detect + remove'
@@ -391,6 +398,14 @@ try {
             Remove-CMPackage -Id $strPackageId -Force -ErrorAction Stop
         } catch {
             Write-Warning ("Package '{0}' was not removed: {1}" -f $strPackageName, $_.Exception.Message)
+        }
+    }
+    if ($boolWrapperCreated) {
+        # The wrapper of this failed run would block a corrected re-run with other settings.
+        try {
+            [System.IO.File]::Delete((Join-Path -Path $strFullSource -ChildPath $strWrapperName))
+        } catch {
+            Write-Warning ("The staged wrapper was not removed: {0}" -f $_.Exception.Message)
         }
     }
     throw

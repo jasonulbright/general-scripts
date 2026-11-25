@@ -137,6 +137,13 @@ Describe 'New-UserProfileCleanupPackage with stub ConfigMgr cmdlets' {
             [System.IO.File]::ReadAllText($strWrapper) | Should -BeExactly $strBefore
         }
 
+        It 'replaces a read-only copy of a script when it refreshes the content' {
+            & $script:Creator -StageOnly -SourcePath $script:Source -Days 90
+            $strRunner = Join-Path -Path $script:Source -ChildPath 'Invoke-UserProfileCleanup.ps1'
+            [System.IO.File]::SetAttributes($strRunner, [System.IO.FileAttributes]::ReadOnly)
+            { & $script:Creator -StageOnly -SourcePath $script:Source -Days 90 } | Should -Not -Throw
+        }
+
         It 'accepts the same settings twice, and refreshes the scripts' {
             & $script:Creator -StageOnly -SourcePath $script:Source -Days 90
             { & $script:Creator -StageOnly -SourcePath $script:Source -Days 90 } | Should -Not -Throw
@@ -245,6 +252,10 @@ Describe 'New-UserProfileCleanupPackage with stub ConfigMgr cmdlets' {
             { & $script:Creator -SiteCode TST -SiteServer srv.test -AssumeConnected -SourcePath $script:Source -Days 90 } | Should -Throw '*program failed*'
             (Get-Call 'Remove-CMPackage').Count | Should -Be 1
             (Get-Call 'Remove-CMPackage')[0].Args.Id | Should -Be 'TST00001'
+            Test-Path -LiteralPath (Join-Path -Path $script:Source -ChildPath 'Run-UserProfileCleanup.ps1') | Should -BeFalse
+            $global:UpcPkgFailProgram = $false
+            $global:UpcPkgCalls.Clear()
+            { & $script:Creator -SiteCode TST -SiteServer srv.test -AssumeConnected -SourcePath $script:Source -Days 90 -ExcludeAccounts 'svc_*' } | Should -Not -Throw
         }
     }
 }
