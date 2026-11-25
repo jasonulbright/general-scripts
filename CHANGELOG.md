@@ -2,6 +2,11 @@
 
 All notable changes to General Scripts are documented in this file.
 
+## [1.0.16] - 2026-11-25
+
+### Added
+- **MECM/CI-CB/Maintenance/User-Profile-Cleanup/** -- profile cleanup for ConfigMgr in three forms that share one engine: (1) a CI + baseline builder, (2) a package + program builder for a recurring deployment, (3) the same package as a task sequence Run Command Line step (`Invoke-UserProfileCleanup.ps1` runner, exit codes 0/1/2, starts 64-bit PowerShell from a 32-bit program). Each builder asks for the day count (30, 60, 90, ...) and puts it in the object names. Removes profiles unused for N days (folder, `NTUSER.DAT` hive, `ProfileList` registration) through the profile service, plus orphaned `ProfileList` keys (including `.bak`), orphaned `ProfileGuid` keys and orphaned profile folders. Profile age comes from the profile-service registry timestamps (Microsoft Learn method); loaded profiles, the built-in Administrator, well-known accounts and non-user SIDs are never touched. Supports account include/exclude patterns, `-DetectOnly`, `-ScriptOnly` / `-StageOnly`.
+
 ## [1.0.15] - 2026-11-12
 
 ### Added
