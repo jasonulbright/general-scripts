@@ -6,7 +6,7 @@ Tools for .NET assemblies.
 
 | File | Purpose |
 |------|---------|
-| `Get-AssemblyInfo.ps1` | Inspects a .NET DLL with reflection. Lists the public types with their declared properties, methods (without property accessors), and custom attributes. Use it when you decompile or retarget a vendored library. |
+| `Get-AssemblyInfo.ps1` | Inspects a .NET DLL with reflection. Lists every type in the assembly. For each type it lists the public instance properties and methods that the type declares (without property accessors), and the custom attributes. Use it when you decompile or retarget a vendored library. |
 
 ## Requirements
 

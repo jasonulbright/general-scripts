@@ -1,6 +1,8 @@
 # CodeQuality
 
-Small developer tools that check and repair PowerShell and WPF source code. They read source files only. They do not need ConfigMgr.
+Small developer tools that check and repair PowerShell and WPF source code. They do not need ConfigMgr.
+
+The two `.ps1` tools only read files. The two `Fix-*.py` tools edit the files that you pass them, in place, with no backup. Commit or back up the files first.
 
 ## Contents
 
