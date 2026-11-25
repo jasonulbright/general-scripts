@@ -2,6 +2,27 @@
 
 A collection of PowerShell utility scripts organized by category.
 
+## Repository layout
+
+Each folder has a `README.md` that lists its subfolders and files and says what each one is for.
+
+| Entry | Purpose |
+|---|---|
+| [CodeQuality/](CodeQuality/) | Tools that check and repair PowerShell and WPF source code. |
+| [DotNet/](DotNet/) | Tools for .NET assemblies. |
+| [Drivers/](Drivers/) | Tools for the Windows driver store. |
+| [ElevatedLauncher/](ElevatedLauncher/) | GUI for starting applications under alternate credentials. |
+| [Filesystem/](Filesystem/) | Tools for files and file names. |
+| [HyperV/](HyperV/) | Tools that look inside a Hyper-V virtual machine from the host. |
+| [MECM/](MECM/) | Configuration Manager (ConfigMgr) scripts: applications, baselines, collections, OSD, client tools. |
+| [Office/](Office/) | Tools for Microsoft Office files. |
+| [Registry/](Registry/) | Tools that search, clean or build registry data. |
+| [native-installers/](native-installers/) | Read-only metadata readers for Windows installer formats. |
+| [CHANGELOG.md](CHANGELOG.md) | History of the changes, newest first. |
+| [LICENSE](LICENSE) | MIT license. |
+| [.coderabbit.yaml](.coderabbit.yaml) | Settings for the CodeRabbit pull request review. |
+| [.github/](.github/) | `FUNDING.yml` (the GitHub Sponsors button). It has no `README.md` on purpose: GitHub would show that file in place of this one. |
+
 ## Filesystem
 
 | Script | Description |

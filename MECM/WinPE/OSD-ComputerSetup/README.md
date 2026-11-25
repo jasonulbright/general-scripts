@@ -133,7 +133,10 @@ OSD-ComputerSetup/
     OSD-ComputerSetup.bat          # Thin wrapper for prestart command line
     role-map.json                  # Role-to-OU mapping (edit for your environment)
     Export-MECMCredential.ps1      # Generates mecm.key/user/pass for hostname duplicate check
+    Gather-ADOUandHostname.ps1     # Pre-WinPE refresh step: keeps the host name and OU of a computer in a refresh
 ```
+
+`Gather-ADOUandHostname.ps1` runs in the full OS before the move to WinPE, in a task sequence that refreshes an existing computer. It reads the current host name and Active Directory OU and writes them to the `OSDComputerName` and `OSDDomainOUName` task sequence variables, so the rebuilt computer keeps its identity and its OU. Gate the step with `_SMSTSLaunchMode equals "SMS"`.
 
 ## Why Not ServiceUI?
 

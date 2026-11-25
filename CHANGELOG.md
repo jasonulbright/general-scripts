@@ -2,6 +2,11 @@
 
 All notable changes to General Scripts are documented in this file.
 
+## [1.0.17] - 2026-11-25
+
+### Added
+- A `README.md` in every folder that lists the subfolders and files and says what each one is for. The CI-CB control folders have a generated README with the registry surface, the scope and the usage. The root README has a layout table.
+
 ## [1.0.16] - 2026-11-25
 
 ### Added
